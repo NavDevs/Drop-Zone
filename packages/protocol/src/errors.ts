@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export const ErrorCode = {
   ROOM_NOT_FOUND: 'ROOM_NOT_FOUND',
   ROOM_EXPIRED: 'ROOM_EXPIRED',
@@ -13,7 +15,14 @@ export const ErrorCode = {
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 
-export interface ProtocolError {
-  code: ErrorCode;
-  message: string;
+const ERROR_CODES = Object.values(ErrorCode) as [ErrorCode, ...ErrorCode[]];
+
+export const ProtocolErrorSchema = z.object({
+  code: z.enum(ERROR_CODES),
+  message: z.string(),
+});
+export type ProtocolError = z.infer<typeof ProtocolErrorSchema>;
+
+export function isProtocolError(value: unknown): value is ProtocolError {
+  return ProtocolErrorSchema.safeParse(value).success;
 }

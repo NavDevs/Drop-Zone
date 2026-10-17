@@ -27,6 +27,9 @@ export type RoomJoinPayload = z.infer<typeof RoomJoinPayloadSchema>;
 export const RoomLeavePayloadSchema = z.object({});
 export type RoomLeavePayload = z.infer<typeof RoomLeavePayloadSchema>;
 
+export const RoomClosePayloadSchema = z.object({});
+export type RoomClosePayload = z.infer<typeof RoomClosePayloadSchema>;
+
 export const RoomApprovePayloadSchema = z.object({
   deviceId: z.string().uuid(),
   allow: z.boolean(),

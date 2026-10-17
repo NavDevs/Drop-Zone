@@ -24,6 +24,23 @@ export const MAX_SIGNAL_PAYLOAD_SIZE = 16 * 1024; // 16 KB
 export const MAX_CONCURRENT_TRANSFERS_PER_PEER = 3;
 export const MEMORY_WRITER_MAX_SIZE = 500 * 1024 * 1024; // 500 MB
 
+// Signaling server rate limits (TRD §5)
+export const ROOM_CREATE_RATE_LIMIT = 10; // per IP
+export const ROOM_CREATE_RATE_WINDOW_SEC = 3600; // 1 hour
+export const ROOM_JOIN_RATE_LIMIT = 10; // per IP
+export const ROOM_JOIN_RATE_WINDOW_SEC = 60; // 1 minute
+export const JOIN_FAIL_LOCKOUT_THRESHOLD = 5; // failed joins
+export const JOIN_FAIL_LOCKOUT_SEC = 900; // 15 minutes
+export const SIGNAL_RATE_LIMIT = 100; // per socket
+export const SIGNAL_RATE_WINDOW_SEC = 10; // 10 seconds
+
+// Room code lifecycle
+export const ROOM_CODE_FREED_RETENTION_SEC = 3600; // freed codes unusable for 1 h
+export const ROOM_SWEEP_INTERVAL_SEC = 30; // expiry sweeper cadence
+
+// ICE credential refresh
+export const ICE_REFRESH_MARGIN_SEC = 60; // reissue TURN creds this long before expiry
+
 export const DANGEROUS_EXTENSIONS = [
   '.exe',
   '.msi',

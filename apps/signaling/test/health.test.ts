@@ -1,15 +1,20 @@
-import { describe, it, expect, afterAll } from 'vitest';
-import { httpServer } from '../src/server.js';
+import { describe, it, expect, afterAll, beforeAll } from 'vitest';
+import { createSignalingServer, type SignalingServer } from '../src/createServer.js';
 
 describe('Health check', () => {
-  afterAll(() => {
-    httpServer.close();
+  let server: SignalingServer;
+
+  beforeAll(async () => {
+    server = createSignalingServer({ logLevel: 'silent', enableSweeper: false });
+    await new Promise<void>((resolve) => server.httpServer.listen(0, resolve));
+  });
+
+  afterAll(async () => {
+    await server.close();
   });
 
   it('returns ok', async () => {
-    const addr = httpServer.address();
-    const port = typeof addr === 'object' && addr ? addr.port : 3001;
-    const res = await fetch(`http://localhost:${port}/healthz`);
+    const res = await fetch(`http://localhost:${server.port()}/healthz`);
     const data = await res.json();
     expect(data).toEqual({ ok: true });
   });
