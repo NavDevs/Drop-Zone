@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { detectDeviceType, getDeviceId } from '../lib/device.js';
 import { getSignalingClient } from '../lib/signaling/SignalingClient.js';
+import { getPeerManager } from '../lib/rtc/PeerManager.js';
+import type { ConnectionClass } from '../lib/rtc/stats.js';
 import { useRoomStore } from '../state/roomStore.js';
 import { usePeersStore } from '../state/peersStore.js';
 import { useSettingsStore } from '../state/settingsStore.js';
@@ -27,6 +29,65 @@ export function Room() {
 
   const deviceName = useSettingsStore((s) => s.deviceName);
   const [renaming, setRenaming] = useState(false);
+  const [rtts, setRtts] = useState<Record<string, number | null>>({});
+  const [linkClasses, setLinkClasses] = useState<Record<string, ConnectionClass | null>>({});
+  const [roundTrip, setRoundTrip] = useState<string | null>(null);
+  const peerManager = getPeerManager();
+
+  // Track per-peer RTT + FR-30 connection class (throttled to ~1 frame/s).
+  useEffect(() => {
+    let frame = 0;
+    const unsubscribe = peerManager.subscribeStats((deviceId, stats) => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        setRtts((prev) => {
+          if (prev[deviceId] === stats.rttMs) return prev;
+          return { ...prev, [deviceId]: stats.rttMs };
+        });
+        setLinkClasses((prev) => {
+          if (prev[deviceId] === stats.connectionClass) return prev;
+          return { ...prev, [deviceId]: stats.connectionClass };
+        });
+      });
+    });
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      unsubscribe();
+    };
+  }, [peerManager]);
+
+  // Tear down all RTCPeerConnections when leaving the room route.
+  useEffect(() => {
+    return () => {
+      peerManager.destroyAll();
+    };
+  }, [peerManager]);
+
+  // Round-trip probe (FR-30): send a control-channel text and measure until echoed.
+  const handlePing = (deviceId: string): void => {
+    const started = performance.now();
+    const unsubscribe = peerManager.subscribeText((fromDeviceId, text) => {
+      if (fromDeviceId !== deviceId || !text.startsWith('ping:')) return;
+      unsubscribe();
+      const rtt = performance.now() - started;
+      setRoundTrip(`${deviceId.slice(0, 8)} echoed in ${Math.round(rtt)} ms`);
+    });
+    const sent = peerManager.sendText(deviceId, `ping:${Date.now()}`);
+    if (!sent) {
+      unsubscribe();
+      setRoundTrip(`${deviceId.slice(0, 8)} not connected`);
+    }
+  };
+
+  // Echo any received ping so the remote probe can complete its round trip.
+  useEffect(
+    () =>
+      peerManager.subscribeText((fromDeviceId, text) => {
+        if (text.startsWith('ping:')) void peerManager.sendText(fromDeviceId, text);
+      }),
+    [peerManager],
+  );
 
   // Join when the URL carries a code we're not already in.
   useEffect(() => {
@@ -130,7 +191,13 @@ export function Room() {
           pending={isHost ? Object.values(pending) : []}
           onApprove={(id) => void client.approveJoiner(id, true)}
           onDeny={(id) => void client.approveJoiner(id, false)}
+          rtts={rtts}
+          linkClasses={linkClasses}
+          onPing={handlePing}
         />
+        <p data-testid="round-trip" className="mt-2 text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
+          {roundTrip ?? 'Ping a connected peer to measure the control-channel round trip.'}
+        </p>
       </section>
 
       {renaming && (

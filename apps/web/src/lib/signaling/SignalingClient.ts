@@ -12,6 +12,7 @@ import { buildDeviceInfo } from '../device.js';
 import { useRoomStore, type IceServerEntry } from '../../state/roomStore.js';
 import { usePeersStore } from '../../state/peersStore.js';
 import { friendlyError, roomClosedReason } from '../errors.js';
+import { getPeerManager } from '../rtc/PeerManager.js';
 import {
   unwrapAck,
   type AckEnvelope,
@@ -39,6 +40,7 @@ export class SignalingClient {
   private inflight: { key: string; promise: Promise<AckResult<unknown>> } | null = null;
   private connectPromise: Promise<void> | null = null;
   private readonly signalListeners = new Set<SignalListener>();
+  private peerManager = getPeerManager();
 
   /** Awaitable connect: resolves once the socket is connected, rejects on timeout. Idempotent. */
   connect(url: string = SIGNALING_URL): Promise<void> {
@@ -99,9 +101,11 @@ export class SignalingClient {
         }
       }
       usePeersStore.getState().upsertPeer(payload.device);
+      this.peerManager.ensureSession(payload.device.deviceId);
     });
     socket.on('peer:left', (payload) => {
       usePeersStore.getState().removePeer(payload.deviceId);
+      this.peerManager.removeSession(payload.deviceId);
     });
     socket.on('peer:updated', (payload) => {
       usePeersStore.getState().upsertPeer(payload.device);
@@ -111,6 +115,7 @@ export class SignalingClient {
     });
     socket.on('room:closed', (payload) => {
       const message = roomClosedReason(payload.reason);
+      this.peerManager.destroyAll();
       usePeersStore.getState().reset();
       useRoomStore.getState().clear();
       useRoomStore.getState().setError({ code: 'ROOM_CLOSED', message });
@@ -124,6 +129,15 @@ export class SignalingClient {
     });
     socket.on('signal', (payload) => {
       for (const listener of this.signalListeners) listener(payload);
+      void this.peerManager.handleSignal(payload);
+    });
+
+    // Wire WebRTC outbound signaling once per socket. Doing this in
+    // createRoom/joinRoom breaks under StrictMode: Room's cleanup runs
+    // destroyAll() (which cleared the sender) before a later re-join could
+    // re-arm it, leaving sessions unable to send offers silently.
+    this.peerManager.start((to, kind, data) => {
+      void this.sendSignal(to, kind, data);
     });
 
     return this.connectPromise;
@@ -209,19 +223,19 @@ export class SignalingClient {
       await this.leaveBestEffort();
       const payload: RoomCreatePayload = { device, ...opts };
       const res = await this.callEvent<'room:create', RoomCreateAck>('room:create', payload);
-      if (res.ok) {
-        this.serverBoundCode = res.data.code;
-        store.setJoined({
-          code: res.data.code,
-          isHost: true,
-          codeExpiresAt: res.data.codeExpiresAt,
-          iceServers: res.data.iceServers as IceServerEntry[],
-        });
-        usePeersStore.getState().setAll([]);
-      } else {
-        store.setError({ code: res.code, message: friendlyError(res.code) });
-      }
-      return res;
+    if (res.ok) {
+      this.serverBoundCode = res.data.code;
+      store.setJoined({
+        code: res.data.code,
+        isHost: true,
+        codeExpiresAt: res.data.codeExpiresAt,
+        iceServers: res.data.iceServers as IceServerEntry[],
+      });
+      usePeersStore.getState().setAll([]);
+    } else {
+      store.setError({ code: res.code, message: friendlyError(res.code) });
+    }
+    return res;
     });
   }
 
@@ -256,6 +270,7 @@ export class SignalingClient {
           usePeersStore.getState().setAll(
             res.data.peers.map((p) => ({ device: p.device, joinedAt: p.joinedAt, presence: 'online' as const })),
           );
+          for (const p of res.data.peers) this.peerManager.ensureSession(p.device.deviceId);
         }
       } else {
         store.setError({ code: res.code, message: friendlyError(res.code) });
@@ -278,6 +293,7 @@ export class SignalingClient {
       await this.callEvent<'room:leave', Record<string, never>>('room:leave', {});
     }
     this.serverBoundCode = null;
+    this.peerManager.destroyAll();
     usePeersStore.getState().reset();
     useRoomStore.getState().clear();
     useRoomStore.getState().setStatus('idle');
@@ -323,6 +339,11 @@ export class SignalingClient {
   onSignal(listener: SignalListener): () => void {
     this.signalListeners.add(listener);
     return () => this.signalListeners.delete(listener);
+  }
+
+  /** Relay an SDP/ICE payload to a peer in the same room (TRD §7). */
+  sendSignal(to: string, kind: 'description' | 'candidate', data: unknown): Promise<AckResult<Record<string, never>>> {
+    return this.callEvent<'signal', Record<string, never>>('signal', { to, kind, data });
   }
 }
 
