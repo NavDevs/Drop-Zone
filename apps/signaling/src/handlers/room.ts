@@ -35,14 +35,35 @@ function broadcastRoom<E extends keyof ServerToClientEvents>(
   }
 }
 
-function roomClosed(ctx: AppContext, room: Room, reason: RoomCloseReason): void {
+/**
+ * Clears room membership state on a live socket so it can join/create again,
+ * and drops its Socket.IO room channel membership.
+ */
+export function releaseSocket(io: AppContext['io'], roomCode: string, socketId: string): void {
+  const s = io.sockets.sockets.get(socketId);
+  if (!s) return;
+  s.data.deviceId = undefined;
+  s.data.deviceName = undefined;
+  s.data.roomId = undefined;
+  if (s.data.iceTimer) {
+    clearTimeout(s.data.iceTimer);
+    s.data.iceTimer = undefined;
+  }
+  void s.leave(roomCode);
+}
+
+/** Notifies every member (peers + pending) that the room closed and releases their sockets. */
+export function notifyRoomClosed(io: AppContext['io'], room: Room, reason: RoomCloseReason): void {
   const reasonText = CLOSE_REASON_TEXT[reason];
-  for (const peer of room.peers.values()) {
-    ctx.io.to(peer.socketId).emit('room:closed', { reason: reasonText });
+  const targets = [...room.peers.values(), ...room.pending.values()];
+  for (const target of targets) {
+    io.to(target.socketId).emit('room:closed', { reason: reasonText });
+    releaseSocket(io, room.code, target.socketId);
   }
-  for (const joiner of room.pending.values()) {
-    ctx.io.to(joiner.socketId).emit('room:closed', { reason: reasonText });
-  }
+}
+
+function roomClosed(ctx: AppContext, room: Room, reason: RoomCloseReason): void {
+  notifyRoomClosed(ctx.io, room, reason);
   ctx.logger.info({ code: hashCode(room.code), reason }, 'Room closed');
 }
 
@@ -58,18 +79,25 @@ function leaveCurrentRoom(ctx: AppContext, socket: AppSocket, reason: RoomCloseR
   const room = ctx.store.getByDevice(deviceId);
   if (!room) {
     socket.data.roomId = undefined;
+    socket.data.deviceId = undefined;
+    socket.data.deviceName = undefined;
     return;
   }
   const { peer } = ctx.store.removePeer(room, deviceId);
   socket.data.roomId = undefined;
+  socket.data.deviceId = undefined;
+  socket.data.deviceName = undefined;
+  void socket.leave(room.code);
+  if (socket.data.iceTimer) {
+    clearTimeout(socket.data.iceTimer);
+    socket.data.iceTimer = undefined;
+  }
   if (peer) {
     broadcastRoom(ctx, room, 'peer:left', { deviceId });
     ctx.logger.info({ deviceId, code: hashCode(room.code) }, 'Peer left');
   }
   if (room.peers.size === 0) {
     closeAndNotify(ctx, room, reason === 'empty' ? 'empty' : reason);
-  } else if (room.pending.size > 0 && room.requireApproval === false) {
-    // pending only exists with approval; nothing to do
   }
 }
 
@@ -317,6 +345,7 @@ export function handleRoomEvents(ctx: AppContext, socket: AppSocket): void {
           return;
         }
         ctx.io.to(denied.socketId).emit('room:closed', { reason: 'JOIN_DENIED' });
+        releaseSocket(ctx.io, room.code, denied.socketId);
         ctx.metrics.joinsTotal.inc({ result: 'denied' });
       }
       ack({});

@@ -5,12 +5,12 @@ import cors from 'cors';
 import helmet from 'helmet';
 import pino, { type Logger } from 'pino';
 import { env, type EnvConfig } from './config.js';
-import { RoomStore, CLOSE_REASON_TEXT, type RoomCloseReason } from './rooms/RoomStore.js';
+import { RoomStore } from './rooms/RoomStore.js';
 import { Limits, DEFAULT_LIMIT_POLICY, type LimitPolicy, extractIp } from './limits.js';
 import { Metrics } from './metrics.js';
 import { issueIceServers } from './ice.js';
 import type { AppContext, AppServer, AppSocket } from './handlers/context.js';
-import { handleRoomEvents } from './handlers/room.js';
+import { handleRoomEvents, notifyRoomClosed } from './handlers/room.js';
 import { handlePeerEvents, scheduleIceRefresh } from './handlers/peer.js';
 import { handleSignalEvents } from './handlers/signal.js';
 
@@ -79,19 +79,14 @@ export function createSignalingServer(overrides: Partial<ServerConfig> & { metri
     cors: { origin: config.corsOrigins, methods: ['GET', 'POST'] },
   });
 
-  const notifyClosed = (roomPeers: Iterable<{ socketId: string }>, reason: RoomCloseReason): void => {
-    for (const peer of roomPeers) {
-      io.to(peer.socketId).emit('room:closed', { reason: CLOSE_REASON_TEXT[reason] });
-    }
-  };
-
   const store = new RoomStore({
     now: config.now,
     sweepIntervalMs: config.sweepIntervalMs,
     ...(config.idleTimeoutSec !== undefined ? { idleTimeoutSec: config.idleTimeoutSec } : {}),
     ...(config.hardMaxSec !== undefined ? { hardMaxSec: config.hardMaxSec } : {}),
     onClosed: (room, reason) => {
-      notifyClosed(room.peers.values(), reason);
+      notifyRoomClosed(io, room, reason);
+      logger.info({ reason }, 'Swept expired room');
       metrics.roomsActive.set(store.size);
     },
   });

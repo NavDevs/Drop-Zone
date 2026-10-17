@@ -413,6 +413,59 @@ describe('presence, leave, and disconnect', () => {
     expect(rejoinAck.error?.code).toBe('ROOM_NOT_FOUND');
   });
 
+  it('a socket can join another room after room:leave', async () => {
+    const { ack: first } = await createRoom(makeDevice());
+    const joinSocket = await connect();
+    await emitAck(joinSocket, 'room:join', { code: first.code, device: makeDevice() });
+    const leaveAck = await emitAck(joinSocket, 'room:leave', {});
+    expect(leaveAck.error).toBeUndefined();
+
+    const second = await createRoom(makeDevice());
+    const rejoinAck = await emitAck(joinSocket, 'room:join', { code: second.ack.code, device: makeDevice('Again') });
+    expect(rejoinAck.error).toBeUndefined();
+  });
+
+  it('a socket can create a new room after leaving as last member', async () => {
+    const { socket } = await createRoom(makeDevice());
+    const leaveAck = await emitAck(socket, 'room:leave', {});
+    expect(leaveAck.error).toBeUndefined();
+    const again = await emitAck<{ code: string }>(socket, 'room:create', { device: makeDevice('Second') });
+    expect(again.error).toBeUndefined();
+    expect((again as { code: string }).code).toHaveLength(6);
+  });
+
+  it('sockets can act again after the host closes the room', async () => {
+    const { socket: hostSocket, ack: hostAck } = await createRoom(makeDevice());
+    const joinSocket = await connect();
+    await emitAck(joinSocket, 'room:join', { code: hostAck.code, device: makeDevice() });
+
+    await emitAck(hostSocket, 'room:close', {});
+
+    // host (closer) can immediately create another room on the same socket
+    const again = await emitAck<{ code: string }>(hostSocket, 'room:create', { device: makeDevice('Host2') });
+    expect(again.error).toBeUndefined();
+
+    // the other member (who only received room:closed) can also join elsewhere
+    const other = await createRoom(makeDevice());
+    const joinAck = await emitAck(joinSocket, 'room:join', { code: other.ack.code, device: makeDevice('Mover') });
+    expect(joinAck.error).toBeUndefined();
+  });
+
+  it('a denied joiner can join a different room on the same socket', async () => {
+    const host = makeDevice();
+    const { socket: hostSocket, ack: hostAck } = await createRoom(host, { requireApproval: true });
+    const joiner = makeDevice();
+    const joinSocket = await connect();
+    const joinReq = waitForEvent(hostSocket, 'join:request');
+    await emitAck(joinSocket, 'room:join', { code: hostAck.code, device: joiner });
+    await joinReq;
+    await emitAck(hostSocket, 'room:approve', { deviceId: joiner.deviceId, allow: false });
+
+    const open = await createRoom(makeDevice());
+    const ack = await emitAck(joinSocket, 'room:join', { code: open.ack.code, device: joiner });
+    expect(ack.error).toBeUndefined();
+  });
+
   it('broadcasts peer:left on socket disconnect', async () => {
     const host = makeDevice();
     const { socket: hostSocket, ack: hostAck } = await createRoom(host);
