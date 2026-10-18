@@ -4,6 +4,7 @@ import { detectDeviceType, getDeviceId } from '../lib/device.js';
 import { getSignalingClient } from '../lib/signaling/SignalingClient.js';
 import { getPeerManager } from '../lib/rtc/PeerManager.js';
 import type { ConnectionClass } from '../lib/rtc/stats.js';
+import { getTransferHub, type IncomingOffer } from '../lib/transfer/TransferHub.js';
 import { useRoomStore } from '../state/roomStore.js';
 import { usePeersStore } from '../state/peersStore.js';
 import { useSettingsStore } from '../state/settingsStore.js';
@@ -11,6 +12,8 @@ import { ErrorBanner } from '../components/ErrorBanner.js';
 import { RoomHeader } from '../components/RoomHeader.js';
 import { PeerGrid } from '../components/PeerGrid.js';
 import { RenameDialog } from '../components/RenameDialog.js';
+import { IncomingDialog } from '../components/IncomingDialog.js';
+import { TransferList } from '../components/TransferList.js';
 
 export function Room() {
   const { code: urlCode } = useParams<{ code: string }>();
@@ -32,7 +35,9 @@ export function Room() {
   const [rtts, setRtts] = useState<Record<string, number | null>>({});
   const [linkClasses, setLinkClasses] = useState<Record<string, ConnectionClass | null>>({});
   const [roundTrip, setRoundTrip] = useState<string | null>(null);
+  const [incomingOffers, setIncomingOffers] = useState<IncomingOffer[]>([]);
   const peerManager = getPeerManager();
+  const transferHub = getTransferHub();
 
   // Track per-peer RTT + FR-30 connection class (throttled to ~1 frame/s).
   useEffect(() => {
@@ -56,6 +61,13 @@ export function Room() {
       unsubscribe();
     };
   }, [peerManager]);
+
+  // Subscribe to incoming file transfer offers (FR-11).
+  useEffect(() => {
+    return transferHub.subscribeIncomingOffers((offers) => {
+      setIncomingOffers(offers);
+    });
+  }, [transferHub]);
 
   // Tear down all RTCPeerConnections when leaving the room route.
   useEffect(() => {
@@ -120,6 +132,10 @@ export function Room() {
   const handleRename = (name: string): void => {
     useSettingsStore.getState().setDeviceName(name);
     void client.updateDeviceName(name);
+  };
+
+  const handleSendFiles = (deviceId: string, files: File[]): void => {
+    void transferHub.sendFiles(deviceId, files);
   };
 
   const selfDevice = selfId
@@ -194,11 +210,22 @@ export function Room() {
           rtts={rtts}
           linkClasses={linkClasses}
           onPing={handlePing}
+          onSendFiles={handleSendFiles}
         />
         <p data-testid="round-trip" className="mt-2 text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
-          {roundTrip ?? 'Ping a connected peer to measure the control-channel round trip.'}
+          {roundTrip ?? 'Ping a connected peer or drop a file to transfer.'}
         </p>
       </section>
+
+      {/* Transfer List (FR-10, FR-15) */}
+      <TransferList />
+
+      {/* Incoming Offer Consent Dialog (FR-11) */}
+      <IncomingDialog
+        offers={incomingOffers}
+        onAccept={(id) => void transferHub.acceptOffer(id)}
+        onDecline={(id) => transferHub.declineOffer(id)}
+      />
 
       {renaming && (
         <RenameDialog

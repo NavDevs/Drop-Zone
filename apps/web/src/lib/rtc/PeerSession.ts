@@ -1,8 +1,10 @@
 import {
   ControlMessageSchema,
+  decodeFrame,
   type ControlMessage,
   type HelloMessage,
   DEFAULT_CHUNK_SIZE,
+  BUFFER_LOW,
 } from '@dropzone/protocol';
 import type { IceServerEntry } from '../../state/roomStore.js';
 import {
@@ -47,6 +49,10 @@ interface PeerSessionOptions {
   onHello?: (hello: Omit<HelloMessage, 't' | 'v'>) => void;
   /** App-level text over the control channel (FR-31 round trip). */
   onText?: (text: string) => void;
+  /** Transfer control messages (offer/accept/ack/…); consumed by TransferHub. */
+  onControl?: (message: ControlMessage) => void;
+  /** Binary chunk frames from the data channels (TRD §9). */
+  onChunk?: (transferId: number, chunkIndex: number, payload: Uint8Array) => void;
   onStats?: (stats: PeerLinkStats) => void;
   onError?: (error: Error) => void;
   /** Injectable for tests; defaults to the real RTCDataChannel. */
@@ -65,6 +71,9 @@ export class PeerSession {
   private readonly opts: PeerSessionOptions;
   private pc: RTCPeerConnection | null = null;
   private control: RTCDataChannel | null = null;
+  private dataChannels: RTCDataChannel[] = [];
+  private lowWaiters = new Map<number, Array<() => void>>();
+  private remoteMaxMessageSize: number | null = null;
   private makingOffer = false;
   private ignoreOffer = false;
   private state: PeerState = 'connecting';
@@ -138,13 +147,58 @@ export class PeerSession {
     this.control = pc.createDataChannel('control', { negotiated: true, id: CONTROL_CHANNEL_ID, ordered: true });
     this.control.onmessage = (event): void => this.handleControlMessage(event.data);
     this.control.onopen = (): void => this.sendHello();
+    this.dataChannels = [];
     for (let i = 0; i < (this.opts.channels ?? 1); i++) {
-      pc.createDataChannel(`data-${i}`, {
+      const channel = pc.createDataChannel(`data-${i}`, {
         negotiated: true,
         id: FIRST_DATA_CHANNEL_ID + i,
         ordered: false,
       });
+      channel.binaryType = 'arraybuffer';
+      channel.bufferedAmountLowThreshold = BUFFER_LOW;
+      channel.onmessage = (event): void => this.handleDataMessage(event.data);
+      channel.onbufferedamountlow = (): void => {
+        const waiters = this.lowWaiters.get(i);
+        if (waiters?.length) {
+          this.lowWaiters.set(i, []);
+          for (const resolve of waiters) resolve();
+        }
+      };
+      this.dataChannels.push(channel);
     }
+  }
+
+  /** Send a binary frame on a data channel (TRD §9). */
+  sendData(frame: ArrayBuffer, channelIndex = 0): boolean {
+    const channel = this.dataChannels[channelIndex];
+    if (!channel || channel.readyState !== 'open') return false;
+    channel.send(frame);
+    return true;
+  }
+
+  /** Current SCTP buffer depth for backpressure (TRD §10.1). */
+  getBufferedAmount(channelIndex: number): number {
+    return this.dataChannels[channelIndex]?.bufferedAmount ?? 0;
+  }
+
+  /** Resolves on the channel's next `bufferedamountlow` event. */
+  whenBufferedAmountLow(channelIndex: number): Promise<void> {
+    const channel = this.dataChannels[channelIndex];
+    if (!channel || channel.bufferedAmount <= BUFFER_LOW) return Promise.resolve();
+    return new Promise((resolve) => {
+      const waiters = this.lowWaiters.get(channelIndex) ?? [];
+      waiters.push(resolve);
+      this.lowWaiters.set(channelIndex, waiters);
+    });
+  }
+
+  dataChannelCount(): number {
+    return this.dataChannels.length;
+  }
+
+  /** Remote SCTP message limit from hello (null until hello arrives). */
+  getRemoteMaxMessageSize(): number | null {
+    return this.remoteMaxMessageSize;
   }
 
   /** Feed a signaling `description` from the remote peer. */
@@ -256,7 +310,10 @@ export class PeerSession {
     } catch {
       // pc may already be closed
     }
+    for (const resolve of this.lowWaiters.values()) for (const fn of resolve) fn();
+    this.lowWaiters.clear();
     this.control = null;
+    this.dataChannels = [];
     this.pc = null;
     this.setState('closed');
   }
@@ -295,6 +352,7 @@ export class PeerSession {
     const message = result.data;
     switch (message.t) {
       case 'hello':
+        this.remoteMaxMessageSize = message.caps.maxMessageSize;
         this.opts.onHello?.({ deviceId: message.deviceId, name: message.name, caps: message.caps });
         break;
       case 'ping':
@@ -311,8 +369,19 @@ export class PeerSession {
         this.opts.onText?.(message.text);
         break;
       default:
-        // Transfer messages (offer/accept/...) are handled by Phase 5 consumers.
+        // Transfer messages (offer/accept/ack/…) go to the transfer engine.
+        this.opts.onControl?.(message);
         break;
+    }
+  }
+
+  private handleDataMessage(raw: unknown): void {
+    if (!(raw instanceof ArrayBuffer)) return;
+    try {
+      const frame = decodeFrame(raw);
+      this.opts.onChunk?.(frame.transferId, frame.chunkIndex, frame.payload);
+    } catch {
+      // Malformed frames are dropped (TRD §9: parser must never crash).
     }
   }
 

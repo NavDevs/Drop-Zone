@@ -1,7 +1,8 @@
-import type { RelayedSignalPayload } from '@dropzone/protocol';
+import type { RelayedSignalPayload, ControlMessage } from '@dropzone/protocol';
 import { usePeersStore } from '../../state/peersStore.js';
 import { useRoomStore } from '../../state/roomStore.js';
 import { getDeviceId, getDeviceName } from '../device.js';
+import type { TransferTransport } from '../transfer/transport.js';
 import { PeerSession, type PeerState, type PeerLinkStats } from './PeerSession.js';
 
 /** Force TURN relay for all connections (TRD §7 debug flag for relay testing). */
@@ -26,6 +27,9 @@ export class PeerManager {
   private textListeners = new Set<(deviceId: string, text: string) => void>();
   private rttListeners = new Set<(deviceId: string, rtt: number | null) => void>();
   private statsListeners = new Set<(deviceId: string, stats: PeerLinkStats) => void>();
+  private controlListeners = new Set<(deviceId: string, message: ControlMessage) => void>();
+  private chunkListeners = new Set<(deviceId: string, transferId: number, chunkIndex: number, payload: Uint8Array) => void>();
+  private sessionRemovedListeners = new Set<(deviceId: string) => void>();
 
   /** Wire the outbound signal sender; call once when a room is joined. */
   start(sendSignal: (to: string, kind: 'description' | 'candidate', data: unknown) => void): void {
@@ -87,27 +91,67 @@ export class PeerManager {
     return () => this.statsListeners.delete(listener);
   }
 
+  /** Transfer control messages (offer/accept/…) from any session. */
+  subscribeControl(listener: (deviceId: string, message: ControlMessage) => void): () => void {
+    this.controlListeners.add(listener);
+    return () => this.controlListeners.delete(listener);
+  }
+
+  /** Binary chunk frames from any session. */
+  subscribeChunk(
+    listener: (deviceId: string, transferId: number, chunkIndex: number, payload: Uint8Array) => void,
+  ): () => void {
+    this.chunkListeners.add(listener);
+    return () => this.chunkListeners.delete(listener);
+  }
+
+  /** Fires when a peer's session is torn down (peer left / room closed). */
+  subscribeSessionRemoved(listener: (deviceId: string) => void): () => void {
+    this.sessionRemovedListeners.add(listener);
+    return () => this.sessionRemovedListeners.delete(listener);
+  }
+
+  /** Transfer-engine transport for a peer; null if no session exists. */
+  getTransport(deviceId: string): TransferTransport | null {
+    const session = this.sessions.get(deviceId);
+    if (!session) return null;
+    return {
+      sendControl: (message) => session.sendControl(message),
+      sendData: (frame, channelIndex) => session.sendData(frame, channelIndex),
+      getBufferedAmount: (channelIndex) => session.getBufferedAmount(channelIndex),
+      whenBufferedAmountLow: (channelIndex) => session.whenBufferedAmountLow(channelIndex),
+      dataChannelCount: () => session.dataChannelCount(),
+      getRemoteMaxMessageSize: () => session.getRemoteMaxMessageSize(),
+    };
+  }
+
   /** Drop a peer's session (peer left or room closed). */
   removeSession(remoteDeviceId: string): void {
     const session = this.sessions.get(remoteDeviceId);
     if (session) {
       session.destroy();
       this.sessions.delete(remoteDeviceId);
+      for (const listener of this.sessionRemovedListeners) listener(remoteDeviceId);
     }
     usePeersStore.getState().setPresence(remoteDeviceId, 'offline');
   }
 
   destroyAll(): void {
+    const removedIds = [...this.sessions.keys()];
     for (const [id, session] of this.sessions) {
       session.destroy();
       usePeersStore.getState().setPresence(id, 'offline');
     }
     this.sessions.clear();
+    for (const id of removedIds) {
+      for (const listener of this.sessionRemovedListeners) listener(id);
+    }
     this.textListeners.clear();
     this.rttListeners.clear();
     this.statsListeners.clear();
-    // Keep sendSignal: it is socket-scoped (wired in SignalingClient.connect),
-    // and clearing it here would break subsequent rooms under StrictMode.
+    // Keep transfer engine listeners (controlListeners, chunkListeners, sessionRemovedListeners)
+    // and sendSignal across room unmounts: they are module/singleton-scoped and clearing them
+    // breaks transfers under React StrictMode double-mounts.
   }
 
   private createSession(remoteDeviceId: string): PeerSession {
@@ -138,6 +182,12 @@ export class PeerManager {
       },
       onText: (text) => {
         for (const listener of this.textListeners) listener(remoteDeviceId, text);
+      },
+      onControl: (message) => {
+        for (const listener of this.controlListeners) listener(remoteDeviceId, message);
+      },
+      onChunk: (transferId, chunkIndex, payload) => {
+        for (const listener of this.chunkListeners) listener(remoteDeviceId, transferId, chunkIndex, payload);
       },
       onError: (error) => {
         // Surface negotiation/ICE failures; silent errors make e2e hangs undebuggable.

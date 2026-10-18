@@ -12,10 +12,21 @@ interface Props {
   rtts?: Record<string, number | null | undefined>;
   linkClasses?: Record<string, ConnectionClass | null | undefined>;
   onPing?: (deviceId: string) => void;
+  onSendFiles?: (deviceId: string, files: File[]) => void;
 }
 
 /** Roster: self + peers (FR-05). Host also sees join requests with approve/deny (FR-06). */
-export function PeerGrid({ self, peers, pending = [], onApprove, onDeny, rtts, linkClasses, onPing }: Props) {
+export function PeerGrid({
+  self,
+  peers,
+  pending = [],
+  onApprove,
+  onDeny,
+  rtts,
+  linkClasses,
+  onPing,
+  onSendFiles,
+}: Props) {
   return (
     <div className="flex flex-col gap-4">
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -28,6 +39,7 @@ export function PeerGrid({ self, peers, pending = [], onApprove, onDeny, rtts, l
             rtt={rtts?.[p.device.deviceId]}
             linkClass={linkClasses?.[p.device.deviceId]}
             onPing={onPing}
+            onSendFiles={onSendFiles}
           />
         ))}
       </ul>

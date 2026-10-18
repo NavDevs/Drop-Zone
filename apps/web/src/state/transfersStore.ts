@@ -17,6 +17,10 @@ export interface TransferRecord {
   transferred: number;
   /** EWMA bytes/sec */
   speed: number;
+  /** Estimated seconds remaining */
+  eta?: number | null;
+  /** Object URL for downloading received file */
+  downloadUrl?: string;
   startedAt: number;
   error?: string;
 }
