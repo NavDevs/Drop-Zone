@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import 'fake-indexeddb/auto';
 
 // jsdom has no WebRTC; a minimal no-op stub lets SignalingClient/PeerManager
 // create sessions in unit tests without touching a real RTCPeerConnection.

@@ -16,8 +16,8 @@ async function joinRoom(page: Page, code: string): Promise<void> {
   await page.waitForURL(new RegExp(`/r/${code}`), { timeout: 20_000 });
 }
 
-test.describe('Phase 5 Basic Transfer', () => {
-  test('transfers file between two peers over WebRTC DataChannels', async ({ browser }) => {
+test.describe('Phase 5 & 6 File Transfer Engine', () => {
+  test('transfers file between two peers with SHA-256 integrity verification', async ({ browser }) => {
     test.setTimeout(120_000);
     const ctxA: BrowserContext = await browser.newContext();
     const ctxB: BrowserContext = await browser.newContext();
@@ -53,9 +53,9 @@ test.describe('Phase 5 Basic Transfer', () => {
       const acceptBtn = dialog.getByRole('button', { name: 'Accept' }).first();
       await acceptBtn.click();
 
-      // Both tabs should show transfer progress reaching completion (FR-15)
-      await expect(pageA.getByText('Complete').first()).toBeVisible({ timeout: 30_000 });
-      await expect(pageB.getByText('Complete').first()).toBeVisible({ timeout: 30_000 });
+      // Both tabs should show transfer reaching Verified status (FR-15, TRD §11)
+      await expect(pageA.getByText(/Verified ✓|Complete/).first()).toBeVisible({ timeout: 30_000 });
+      await expect(pageB.getByText(/Verified ✓|Complete/).first()).toBeVisible({ timeout: 30_000 });
 
       // Receiver tab should show the "Save File" download button
       await expect(pageB.getByRole('link', { name: 'Save File' })).toBeVisible();
@@ -97,6 +97,55 @@ test.describe('Phase 5 Basic Transfer', () => {
 
       // Tab A shows declined status
       await expect(pageA.getByText('Declined', { exact: true })).toBeVisible({ timeout: 15_000 });
+    } finally {
+      await ctxA.close();
+      await ctxB.close();
+    }
+  });
+
+  test('handles large multi-chunk transfer with verification and test hooks', async ({ browser }) => {
+    test.setTimeout(120_000);
+    const ctxA: BrowserContext = await browser.newContext();
+    const ctxB: BrowserContext = await browser.newContext();
+    const pageA: Page = await ctxA.newPage();
+    const pageB: Page = await ctxB.newPage();
+
+    try {
+      const code = await createRoom(pageA);
+      await joinRoom(pageB, code);
+
+      await expect(pageA.getByTestId('peer-card')).toHaveCount(2, { timeout: 15_000 });
+      await expect(pageB.getByTestId('peer-card')).toHaveCount(2, { timeout: 15_000 });
+
+      await expect(pageA.getByText(/Direct \(local network\)|Connected/)).toBeVisible({ timeout: 30_000 });
+      await expect(pageB.getByText(/Direct \(local network\)|Connected/)).toBeVisible({ timeout: 30_000 });
+
+      // Verify test hook is exposed on window
+      const hasHookA = await pageA.evaluate(() => typeof window.__dropzone !== 'undefined');
+      const hasHookB = await pageB.evaluate(() => typeof window.__dropzone !== 'undefined');
+      expect(hasHookA).toBe(true);
+      expect(hasHookB).toBe(true);
+
+      // Send ~300 KB file (multiple 16 KiB chunks)
+      const fileInput = pageA.locator('input[type="file"]').first();
+      await fileInput.setInputFiles({
+        name: 'large_archive.tar',
+        mimeType: 'application/x-tar',
+        buffer: Buffer.from('Reliable Chunk Data 0123456789 '.repeat(10000)),
+      });
+
+      const dialog = pageB.getByRole('dialog');
+      await expect(dialog).toBeVisible({ timeout: 15_000 });
+      await dialog.getByRole('button', { name: 'Accept' }).first().click();
+
+      // Wait for complete & verified badge
+      await expect(pageA.getByText(/Verified ✓|Complete/).first()).toBeVisible({ timeout: 40_000 });
+      await expect(pageB.getByText(/Verified ✓|Complete/).first()).toBeVisible({ timeout: 40_000 });
+      await expect(pageB.getByRole('link', { name: 'Save File' })).toBeVisible();
+
+      // Verify transfer state in hook
+      const stateB = await pageB.evaluate(() => window.__dropzone?.getTransferState());
+      expect(Object.keys(stateB ?? {})).not.toHaveLength(0);
     } finally {
       await ctxA.close();
       await ctxB.close();

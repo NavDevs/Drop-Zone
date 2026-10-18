@@ -137,4 +137,31 @@ describe('TransferSender', () => {
     expect(sender.getState()).toBe('cancelled');
     expect(cancelled).toBe(true);
   });
+
+  it('resumes sending only missing chunks on resume message', async () => {
+    const { transport, dataSent } = createMockTransport();
+    const file = new File(['0123456789abcdef'], 'data.bin'); // 16 bytes, chunkSize 4 -> 4 chunks (0,1,2,3)
+    const sender = new TransferSender(400, file, transport, { chunkSize: 4 });
+
+    sender.start();
+    // Receiver already has chunks 0 and 2. Missing chunks are 1 and 3.
+    // Bitmap for 4 chunks: bit 0 = 1, bit 1 = 0, bit 2 = 1, bit 3 = 0 -> byte 0b00000101 = 5
+    const bitmapB64 = btoa(String.fromCharCode(5));
+
+    sender.handleControl({
+      t: 'resume',
+      transferId: 400,
+      bitmap: bitmapB64,
+      received: 2,
+    });
+
+    await new Promise((r) => setTimeout(r, 60));
+
+    // Only chunks 1 and 3 should have been sent!
+    expect(dataSent).toHaveLength(2);
+    const f0 = decodeFrame(dataSent[0]!);
+    expect(f0.chunkIndex).toBe(1);
+    const f1 = decodeFrame(dataSent[1]!);
+    expect(f1.chunkIndex).toBe(3);
+  });
 });

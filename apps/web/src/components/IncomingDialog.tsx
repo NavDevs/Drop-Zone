@@ -48,6 +48,12 @@ export function IncomingDialog({ offers, onAccept, onDecline }: IncomingDialogPr
                 </div>
               )}
 
+              {offer.lowSpaceWarning && (
+                <div className="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-800 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-800/60">
+                  ⚠️ <strong>Storage Warning:</strong> Available disk space may be insufficient for this file.
+                </div>
+              )}
+
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"

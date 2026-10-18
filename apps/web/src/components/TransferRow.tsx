@@ -20,7 +20,11 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
       case 'offering':
         return <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300">Offering…</span>;
       case 'done':
-        return <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">Complete</span>;
+        return (
+          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
+            {transfer.verified ? 'Verified ✓' : 'Complete'}
+          </span>
+        );
       case 'declined':
         return <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">Declined</span>;
       case 'cancelled':

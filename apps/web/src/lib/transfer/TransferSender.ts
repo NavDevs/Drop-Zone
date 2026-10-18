@@ -1,11 +1,16 @@
 import {
   DEFAULT_CHUNK_SIZE,
   BUFFER_HIGH,
+  ACK_WINDOW_BYTES,
   PROGRESS_THROTTLE_MS,
   encodeFrame,
   type ControlMessage,
 } from '@dropzone/protocol';
 import type { TransferTransport } from './transport.js';
+import { PrefetchQueue } from './PrefetchQueue.js';
+import { ChunkBitmap } from './bitmap.js';
+import { computeFileHash } from './hasher.js';
+import { acquireWakeLock, releaseWakeLock } from './wakeLock.js';
 
 export type SenderState =
   | 'idle'
@@ -33,8 +38,9 @@ export interface TransferSenderOptions {
 }
 
 /**
- * Sends a single file over the WebRTC DataChannels with network backpressure,
- * chunking, EWMA speed tracking, and throttled UI updates (TRD §10.1).
+ * Sends a single file over WebRTC DataChannels with dual backpressure
+ * (network bufferedAmount + 16 MiB receiver disk window), prefetch read-ahead,
+ * concurrent SHA-256 calculation, and auto-resume support (TRD §10.1, §11).
  */
 export class TransferSender {
   public readonly transferId: number;
@@ -47,9 +53,26 @@ export class TransferSender {
   private state: SenderState = 'idle';
   private bytesSent = 0;
   private resumeResolve: (() => void) | null = null;
+  private ackWaiters: Array<() => void> = [];
   private lastProgressEmit = 0;
 
-  // EWMA speed tracking (alpha = 0.3 for responsive yet smooth readings)
+  // Flow control (TRD §10.1)
+  private readonly windowChunks: number;
+  private lastAckReceived = 0;
+  private receivedAtPassStart = 0;
+  private chunksSentThisPass = 0;
+
+  // Integrity & queue
+  private prefetchQueue: PrefetchQueue | null = null;
+  private hashPromise: Promise<string> | null = null;
+  private fileHash: string | null = null;
+  private wakeLockAcquired = false;
+
+  getFileHash(): string | null {
+    return this.fileHash;
+  }
+
+  // EWMA speed tracking
   private speedEwma = 0;
   private lastSampleTime = 0;
   private lastSampleBytes = 0;
@@ -69,13 +92,13 @@ export class TransferSender {
     const effectiveMax = remoteMax && remoteMax > 0 ? remoteMax : DEFAULT_CHUNK_SIZE;
     this.chunkSize = Math.min(options.chunkSize ?? DEFAULT_CHUNK_SIZE, effectiveMax);
     this.totalChunks = Math.max(1, Math.ceil(file.size / this.chunkSize));
+    this.windowChunks = Math.max(1, Math.floor(ACK_WINDOW_BYTES / this.chunkSize));
   }
 
   getState(): SenderState {
     return this.state;
   }
 
-  /** Send the offer message to initiate transfer (TRD §8). */
   start(): void {
     if (this.state !== 'idle') return;
     this.state = 'offering';
@@ -89,7 +112,7 @@ export class TransferSender {
       lastModified: this.file.lastModified,
       chunkSize: this.chunkSize,
       totalChunks: this.totalChunks,
-      channels: 1,
+      channels: Math.max(1, this.transport.dataChannelCount()),
     });
 
     if (!sent) {
@@ -97,29 +120,42 @@ export class TransferSender {
     }
   }
 
-  /** Process incoming control message for this transfer. */
   handleControl(message: ControlMessage): void {
     if ('transferId' in message && message.transferId !== this.transferId) return;
 
     switch (message.t) {
       case 'accept':
-        if (this.state === 'offering') {
-          this.state = 'active';
-          void this.runSendLoop();
+        if (this.state === 'offering' || this.state === 'paused') {
+          this.beginTransferPass();
         }
         break;
 
+      case 'ack':
+        this.lastAckReceived = message.received;
+        this.notifyAckWaiters();
+        break;
+
+      case 'resume': {
+        const bitmap = ChunkBitmap.fromBase64(message.bitmap, this.totalChunks);
+        const missing = bitmap.missingIndices();
+        this.resumePass(missing, message.received);
+        break;
+      }
+
       case 'reject':
+        this.cleanup();
         this.state = 'declined';
         this.options.onDeclined?.(message.reason);
         break;
 
       case 'cancel':
+        this.cleanup();
         this.state = 'cancelled';
         if (this.resumeResolve) {
           this.resumeResolve();
           this.resumeResolve = null;
         }
+        this.notifyAckWaiters();
         this.options.onCancelled?.(message.reason);
         break;
 
@@ -130,7 +166,64 @@ export class TransferSender {
       case 'continue':
         this.resume();
         break;
+
+      case 'verified':
+        if (this.state === 'done') {
+          if (!message.ok) {
+            this.options.onError?.(new Error('Remote peer reported hash verification failure'));
+          }
+        }
+        break;
     }
+  }
+
+  private beginTransferPass(initialIndices?: number[]): void {
+    this.state = 'active';
+    void this.ensureWakeLock();
+
+    // Start background hash calculation concurrently if not started yet (TRD §11)
+    if (!this.hashPromise) {
+      this.hashPromise = computeFileHash(this.file).then((hex) => {
+        this.fileHash = hex;
+        return hex;
+      });
+    }
+
+    const indices = initialIndices ?? Array.from({ length: this.totalChunks }, (_, i) => i);
+    this.receivedAtPassStart = this.totalChunks - indices.length;
+    this.lastAckReceived = this.receivedAtPassStart;
+    this.chunksSentThisPass = 0;
+
+    if (!this.prefetchQueue) {
+      this.prefetchQueue = new PrefetchQueue(this.file, this.chunkSize, indices);
+    } else {
+      this.prefetchQueue.reset(indices);
+    }
+
+    void this.runSendLoop();
+  }
+
+  private resumePass(missingIndices: number[], alreadyReceived: number): void {
+    if (this.state === 'cancelled' || this.state === 'error') return;
+    this.state = 'active';
+    void this.ensureWakeLock();
+
+    this.receivedAtPassStart = alreadyReceived;
+    this.lastAckReceived = alreadyReceived;
+    this.chunksSentThisPass = 0;
+
+    if (this.prefetchQueue) {
+      this.prefetchQueue.reset(missingIndices);
+    } else {
+      this.prefetchQueue = new PrefetchQueue(this.file, this.chunkSize, missingIndices);
+    }
+
+    if (this.resumeResolve) {
+      this.resumeResolve();
+      this.resumeResolve = null;
+    }
+    this.notifyAckWaiters();
+    void this.runSendLoop();
   }
 
   pause(): void {
@@ -152,61 +245,79 @@ export class TransferSender {
   cancel(reason?: string): void {
     if (this.state === 'done' || this.state === 'cancelled' || this.state === 'error') return;
     this.state = 'cancelled';
+    this.cleanup();
     this.transport.sendControl({ t: 'cancel', transferId: this.transferId, reason });
     if (this.resumeResolve) {
       this.resumeResolve();
       this.resumeResolve = null;
     }
+    this.notifyAckWaiters();
     this.options.onCancelled?.(reason);
   }
 
   private async runSendLoop(): Promise<void> {
-    const now = performance.now();
-    this.lastSampleTime = now;
-    this.lastSampleBytes = 0;
+    const numChannels = Math.max(1, this.transport.dataChannelCount());
+    this.lastSampleTime = performance.now();
+    this.lastSampleBytes = this.bytesSent;
 
     try {
-      for (let i = 0; i < this.totalChunks; i++) {
-        // Handle pause
-        while (this.state === 'paused') {
+      while (this.state === 'active' && this.prefetchQueue) {
+        while ((this.state as SenderState) === 'paused') {
           await new Promise<void>((resolve) => {
             this.resumeResolve = resolve;
           });
         }
-
         if (this.state !== 'active') break;
 
-        // Network backpressure: yield if channel buffer is deep (TRD §10.1)
-        if (this.transport.getBufferedAmount(0) > BUFFER_HIGH) {
-          await this.transport.whenBufferedAmountLow(0);
+        // 1. Receiver-disk backpressure (TRD §10.1): wait if in-flight chunks reach window
+        const inflight = this.chunksSentThisPass - (this.lastAckReceived - this.receivedAtPassStart);
+        if (inflight >= this.windowChunks) {
+          await new Promise<void>((resolve) => {
+            this.ackWaiters.push(resolve);
+          });
+          if (this.state !== 'active') break;
         }
 
+        // 2. Fetch next chunk from bounded read-ahead prefetch queue
+        const item = await this.prefetchQueue.take();
+        if (!item) break; // Pass finished
+
+        // 3. Network backpressure: check target channel buffer
+        const channelIdx = item.index % numChannels;
+        if (this.transport.getBufferedAmount(channelIdx) > BUFFER_HIGH) {
+          await this.transport.whenBufferedAmountLow(channelIdx);
+        }
         if (this.state !== 'active') break;
 
-        // Slice chunk and read array buffer
-        const start = i * this.chunkSize;
-        const end = Math.min(start + this.chunkSize, this.file.size);
-        const slice = this.file.slice(start, end);
-        const buf = await slice.arrayBuffer();
-
-        // Encode and send binary frame (TRD §9)
-        const frame = encodeFrame(this.transferId, i, new Uint8Array(buf));
-        const sent = this.transport.sendData(frame, 0);
+        // 4. Send binary chunk frame (TRD §9)
+        const frame = encodeFrame(this.transferId, item.index, new Uint8Array(item.buffer));
+        const sent = this.transport.sendData(frame, channelIdx);
         if (!sent) {
-          throw new Error(`DataChannel closed or unavailable sending chunk ${i}`);
+          throw new Error(`DataChannel ${channelIdx} unavailable sending chunk ${item.index}`);
         }
 
-        this.bytesSent += buf.byteLength;
+        this.chunksSentThisPass++;
+        this.bytesSent += item.buffer.byteLength;
         this.updateProgress();
       }
 
       if (this.state === 'active') {
-        // Send final progress 100%
         this.emitProgress(true);
-
-        // Notify receiver that all chunks have been transmitted
         this.transport.sendControl({ t: 'sent-all', transferId: this.transferId });
+
+        // Await hash and transmit to receiver (TRD §11)
+        if (this.hashPromise) {
+          const hex = await this.hashPromise;
+          this.transport.sendControl({
+            t: 'hash',
+            transferId: this.transferId,
+            algo: 'sha256',
+            hex,
+          });
+        }
+
         this.state = 'done';
+        this.cleanup();
         this.options.onComplete?.();
       }
     } catch (err) {
@@ -227,7 +338,6 @@ export class TransferSender {
       this.lastSampleTime = now;
       this.lastSampleBytes = this.bytesSent;
     }
-
     this.emitProgress(false);
   }
 
@@ -246,8 +356,33 @@ export class TransferSender {
     );
   }
 
+  private notifyAckWaiters(): void {
+    const list = this.ackWaiters;
+    this.ackWaiters = [];
+    for (const resolve of list) resolve();
+  }
+
+  private async ensureWakeLock(): Promise<void> {
+    if (!this.wakeLockAcquired) {
+      this.wakeLockAcquired = true;
+      await acquireWakeLock();
+    }
+  }
+
+  private cleanup(): void {
+    if (this.prefetchQueue) {
+      this.prefetchQueue.abort();
+      this.prefetchQueue = null;
+    }
+    if (this.wakeLockAcquired) {
+      this.wakeLockAcquired = false;
+      void releaseWakeLock();
+    }
+  }
+
   private fail(error: Error): void {
     this.state = 'error';
+    this.cleanup();
     this.transport.sendControl({
       t: 'cancel',
       transferId: this.transferId,

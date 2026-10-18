@@ -3,10 +3,13 @@ import {
   type OfferMessage,
 } from '@dropzone/protocol';
 import { getPeerManager, type PeerManager } from '../rtc/PeerManager.js';
-import { useTransfersStore } from '../../state/transfersStore.js';
+import { useTransfersStore, type TransferRecord } from '../../state/transfersStore.js';
 import { usePeersStore } from '../../state/peersStore.js';
 import { sanitizeFileName, isDangerousExtension } from './sanitize.js';
-import { MemoryWriter } from './MemoryWriter.js';
+import { type ChunkWriter, MemoryWriter } from './MemoryWriter.js';
+import { FsAccessWriter } from './FsAccessWriter.js';
+import { OpfsWriter } from './OpfsWriter.js';
+import { selectStorageBackend, checkStorageEstimate } from './capability.js';
 import { TransferSender } from './TransferSender.js';
 import { TransferReceiver } from './TransferReceiver.js';
 
@@ -19,11 +22,22 @@ export interface IncomingOffer {
   mime: string;
   dangerous: boolean;
   receivedAt: number;
+  lowSpaceWarning?: boolean;
+}
+
+declare global {
+  interface Window {
+    __dropzone?: {
+      dropConnection: (peerId: string) => void;
+      getTransferState: () => Record<number, TransferRecord>;
+      resumeTransfer: (transferId: number) => void;
+    };
+  }
 }
 
 /**
- * Coordinates file transfers across WebRTC peer sessions and synchronizes
- * active transfer records with useTransfersStore (TRD §10).
+ * Coordinates file transfers across WebRTC peer sessions, manages storage backends,
+ * synchronizes with useTransfersStore, and provides test hooks (TRD §10, §14).
  */
 export class TransferHub {
   private readonly peerManager: PeerManager;
@@ -40,6 +54,7 @@ export class TransferHub {
   constructor(peerManager: PeerManager = getPeerManager()) {
     this.peerManager = peerManager;
     this.bindPeerManager();
+    this.exposeTestHooks();
   }
 
   private bindPeerManager(): void {
@@ -57,6 +72,23 @@ export class TransferHub {
     this.unsubRemoved = this.peerManager.subscribeSessionRemoved((deviceId) => {
       this.handleSessionRemoved(deviceId);
     });
+  }
+
+  private exposeTestHooks(): void {
+    if (typeof window !== 'undefined') {
+      window.__dropzone = {
+        dropConnection: (peerId: string) => {
+          this.peerManager.removeSession(peerId);
+        },
+        getTransferState: () => {
+          return useTransfersStore.getState().transfers;
+        },
+        resumeTransfer: (transferId: number) => {
+          const receiver = this.receivers.get(transferId);
+          if (receiver) receiver.sendResume();
+        },
+      };
+    }
   }
 
   destroy(): void {
@@ -87,7 +119,6 @@ export class TransferHub {
 
   /**
    * Queue and initiate sending one or more files to a remote peer (FR-10).
-   * Ensures peer session is established and launches TransferSender per file.
    */
   async sendFiles(remoteDeviceId: string, files: File[]): Promise<number[]> {
     this.peerManager.ensureSession(remoteDeviceId);
@@ -132,6 +163,7 @@ export class TransferHub {
             progress: 1,
             speed: 0,
             eta: 0,
+            verified: true,
           });
           this.senders.delete(transferId);
         },
@@ -170,7 +202,7 @@ export class TransferHub {
 
   /**
    * Accept an incoming transfer offer (FR-11).
-   * Nothing is written to disk before user clicks Accept.
+   * Storage backend is selected and initialized upon explicit user Accept.
    */
   async acceptOffer(transferId: number): Promise<void> {
     const item = this.incomingOffers.get(transferId);
@@ -200,8 +232,19 @@ export class TransferHub {
       channels: 1,
     };
 
-    const writer = new MemoryWriter();
+    const backendKind = selectStorageBackend(item.size);
+    let writer: ChunkWriter;
+
+    if (backendKind === 'fs-access') {
+      writer = new FsAccessWriter();
+    } else if (backendKind === 'opfs') {
+      writer = new OpfsWriter(transferId);
+    } else {
+      writer = new MemoryWriter();
+    }
+
     const receiver = new TransferReceiver(offer, transport, writer, {
+      writerKind: backendKind,
       onProgress: (receivedBytes, _total, speed, progress, eta) => {
         useTransfersStore.getState().update(transferId, {
           status: 'active',
@@ -211,7 +254,7 @@ export class TransferHub {
           eta,
         });
       },
-      onComplete: (file) => {
+      onComplete: (file, verified) => {
         let downloadUrl: string | undefined;
         if (file) {
           downloadUrl = URL.createObjectURL(file);
@@ -222,7 +265,9 @@ export class TransferHub {
           progress: 1,
           speed: 0,
           eta: 0,
+          verified,
           downloadUrl,
+          backend: backendKind,
         });
         this.receivers.delete(transferId);
       },
@@ -327,6 +372,17 @@ export class TransferHub {
       });
 
       this.notifyOfferListeners();
+
+      // Check available disk space (TRD §10.2)
+      void checkStorageEstimate(message.size).then((estimate) => {
+        if (!estimate.sufficient) {
+          const current = this.incomingOffers.get(message.transferId);
+          if (current) {
+            current.lowSpaceWarning = true;
+            this.notifyOfferListeners();
+          }
+        }
+      });
       return;
     }
 

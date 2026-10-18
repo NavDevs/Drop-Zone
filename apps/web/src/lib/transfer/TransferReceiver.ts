@@ -5,12 +5,21 @@ import {
   type ControlMessage,
   type OfferMessage,
 } from '@dropzone/protocol';
-import type { ChunkWriter } from './MemoryWriter.js';
+import { type ChunkWriter, MemoryWriter } from './MemoryWriter.js';
 import type { TransferTransport } from './transport.js';
+import { ChunkBitmap } from './bitmap.js';
+import { computeStreamHash } from './hasher.js';
+import {
+  saveResumeRecord,
+  deleteResumeRecord,
+  type StorageBackendKind,
+} from './resumeStore.js';
+import { acquireWakeLock, releaseWakeLock } from './wakeLock.js';
 
-export type ReceiverState = 'idle' | 'active' | 'done' | 'cancelled' | 'error';
+export type ReceiverState = 'idle' | 'active' | 'verifying' | 'done' | 'cancelled' | 'error';
 
 export interface TransferReceiverOptions {
+  writerKind?: StorageBackendKind;
   onProgress?: (
     receivedBytes: number,
     totalBytes: number,
@@ -18,29 +27,31 @@ export interface TransferReceiverOptions {
     progress: number,
     etaSeconds: number | null,
   ) => void;
-  onComplete?: (file: File | null) => void;
+  onComplete?: (file: File | null, verified: boolean) => void;
   onError?: (error: Error) => void;
   onCancelled?: (reason?: string) => void;
 }
 
 /**
- * Reassembles incoming chunks via a ChunkWriter, emits throttled progress,
- * and sends periodic acks for backpressure (TRD §10.2).
+ * Reassembles incoming binary chunks via ChunkWriter, tracks bitmap, persists
+ * partial state to IndexedDB for resume, and computes SHA-256 integrity verification (TRD §10.2, §11).
  */
 export class TransferReceiver {
   public readonly transferId: number;
   public readonly offer: OfferMessage;
   private readonly transport: TransferTransport;
-  private readonly writer: ChunkWriter;
+  private writer: ChunkWriter;
   private readonly options: TransferReceiverOptions;
 
   private state: ReceiverState = 'idle';
   private bytesReceived = 0;
-  private receivedChunkIndices = new Set<number>();
+  private bitmap: ChunkBitmap;
   private chunksSinceLastAck = 0;
   private lastAckTime = 0;
   private lastProgressEmit = 0;
   private sentAllReceived = false;
+  private senderHash: string | null = null;
+  private wakeLockAcquired = false;
 
   // EWMA speed tracking
   private speedEwma = 0;
@@ -58,27 +69,49 @@ export class TransferReceiver {
     this.transport = transport;
     this.writer = writer;
     this.options = options;
+    this.bitmap = ChunkBitmap.empty(offer.totalChunks);
   }
 
   getState(): ReceiverState {
     return this.state;
   }
 
-  /** Open the writer and accept the transfer (TRD §10.2). */
+  getBitmap(): ChunkBitmap {
+    return this.bitmap;
+  }
+
   async start(): Promise<void> {
     if (this.state !== 'idle') return;
     try {
-      await this.writer.open({
-        name: this.offer.name,
-        size: this.offer.size,
-        mime: this.offer.mime,
-        chunkSize: this.offer.chunkSize,
-        totalChunks: this.offer.totalChunks,
-      });
+      try {
+        await this.writer.open({
+          name: this.offer.name,
+          size: this.offer.size,
+          mime: this.offer.mime,
+          chunkSize: this.offer.chunkSize,
+          totalChunks: this.offer.totalChunks,
+        });
+      } catch (openErr) {
+        if (this.options.writerKind === 'fs-access') {
+          console.warn('FsAccessWriter open failed; falling back to MemoryWriter:', openErr);
+          this.writer = new MemoryWriter();
+          this.options.writerKind = 'memory';
+          await this.writer.open({
+            name: this.offer.name,
+            size: this.offer.size,
+            mime: this.offer.mime,
+            chunkSize: this.offer.chunkSize,
+            totalChunks: this.offer.totalChunks,
+          });
+        } else {
+          throw openErr;
+        }
+      }
 
       this.state = 'active';
       this.lastAckTime = performance.now();
       this.lastSampleTime = performance.now();
+      void this.ensureWakeLock();
 
       const sent = this.transport.sendControl({
         t: 'accept',
@@ -94,7 +127,6 @@ export class TransferReceiver {
     }
   }
 
-  /** Write an incoming binary chunk into the storage backend. */
   async handleChunk(chunkIndex: number, payload: Uint8Array): Promise<void> {
     if (this.state !== 'active') return;
 
@@ -106,7 +138,6 @@ export class TransferReceiver {
     }
 
     try {
-      // Positional write into storage backend
       const buf =
         payload.byteOffset === 0 && payload.byteLength === payload.buffer.byteLength
           ? (payload.buffer as ArrayBuffer)
@@ -114,15 +145,15 @@ export class TransferReceiver {
               payload.byteOffset,
               payload.byteOffset + payload.byteLength,
             ) as ArrayBuffer);
+
       await this.writer.write(chunkIndex, buf);
 
-      if (!this.receivedChunkIndices.has(chunkIndex)) {
-        this.receivedChunkIndices.add(chunkIndex);
+      if (!this.bitmap.has(chunkIndex)) {
+        this.bitmap.set(chunkIndex);
         this.bytesReceived += payload.byteLength;
         this.chunksSinceLastAck++;
       }
 
-      // Backpressure ack check: every 64 chunks or 250ms (TRD §10.2)
       const now = performance.now();
       if (
         this.chunksSinceLastAck >= ACK_INTERVAL_CHUNKS ||
@@ -133,11 +164,7 @@ export class TransferReceiver {
 
       this.updateProgress();
 
-      // Check if sent-all was already waiting on the last chunk
-      if (
-        this.sentAllReceived &&
-        this.receivedChunkIndices.size === this.offer.totalChunks
-      ) {
+      if (this.sentAllReceived && this.bitmap.isComplete()) {
         await this.finalizeTransfer();
       }
     } catch (err) {
@@ -146,35 +173,58 @@ export class TransferReceiver {
     }
   }
 
-  /** Process control messages (sent-all, cancel) for this transfer. */
   async handleControl(message: ControlMessage): Promise<void> {
     if ('transferId' in message && message.transferId !== this.transferId) return;
 
     switch (message.t) {
       case 'sent-all':
         this.sentAllReceived = true;
-        if (this.receivedChunkIndices.size === this.offer.totalChunks) {
+        if (this.bitmap.isComplete()) {
           await this.finalizeTransfer();
         }
         break;
 
+      case 'hash':
+        this.senderHash = message.hex;
+        if (this.state === 'verifying') {
+          await this.verifyIntegrity();
+        }
+        break;
+
       case 'cancel':
+        this.cleanup();
         this.state = 'cancelled';
         await this.writer.abort();
+        await deleteResumeRecord(this.transferId);
         this.options.onCancelled?.(message.reason);
         break;
     }
   }
 
+  /**
+   * Send resume request after a connection reconnection (TRD §10.4).
+   */
+  sendResume(): void {
+    if (this.state === 'cancelled' || this.state === 'done') return;
+    this.transport.sendControl({
+      t: 'resume',
+      transferId: this.transferId,
+      bitmap: this.bitmap.toBase64(),
+      received: this.bitmap.count(),
+    });
+  }
+
   async cancel(reason?: string): Promise<void> {
     if (this.state === 'done' || this.state === 'cancelled' || this.state === 'error') return;
     this.state = 'cancelled';
+    this.cleanup();
     this.transport.sendControl({
       t: 'cancel',
       transferId: this.transferId,
       reason,
     });
     await this.writer.abort();
+    await deleteResumeRecord(this.transferId);
     this.options.onCancelled?.(reason);
   }
 
@@ -182,10 +232,26 @@ export class TransferReceiver {
     this.chunksSinceLastAck = 0;
     this.lastAckTime = now;
     await this.writer.flush();
+
     this.transport.sendControl({
       t: 'ack',
       transferId: this.transferId,
-      received: this.receivedChunkIndices.size,
+      received: this.bitmap.count(),
+    });
+
+    // Persist to IndexedDB for resume
+    void saveResumeRecord({
+      transferId: this.transferId,
+      peerDeviceId: '',
+      name: this.offer.name,
+      size: this.offer.size,
+      lastModified: this.offer.lastModified,
+      chunkSize: this.offer.chunkSize,
+      totalChunks: this.offer.totalChunks,
+      bitmap: this.bitmap.toBase64(),
+      received: this.bitmap.count(),
+      writerKind: this.options.writerKind ?? 'memory',
+      updatedAt: Date.now(),
     });
   }
 
@@ -194,11 +260,46 @@ export class TransferReceiver {
     try {
       await this.sendAck(performance.now());
       await this.writer.finalize();
-      this.state = 'done';
+      this.state = 'verifying';
       this.emitProgress(true);
 
-      const file = 'getFile' in this.writer ? (this.writer as { getFile: () => File | null }).getFile() : null;
-      this.options.onComplete?.(file);
+      // Verify SHA-256 hash if already received, or wait for 'hash' message
+      if (this.senderHash) {
+        await this.verifyIntegrity();
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      await this.fail(error);
+    }
+  }
+
+  private async verifyIntegrity(): Promise<void> {
+    try {
+      const computedHash = await computeStreamHash(this.writer.readSlices(4 * 1024 * 1024));
+      const ok = this.senderHash === null || computedHash === this.senderHash;
+
+      this.transport.sendControl({
+        t: 'verified',
+        transferId: this.transferId,
+        ok,
+        hex: computedHash,
+      });
+
+      if (!ok) {
+        throw new Error(
+          `SHA-256 mismatch: sender=${this.senderHash}, receiver=${computedHash}`,
+        );
+      }
+
+      this.state = 'done';
+      this.cleanup();
+      await deleteResumeRecord(this.transferId);
+
+      const file =
+        'getFile' in this.writer
+          ? (this.writer as { getFile: () => File | null }).getFile()
+          : null;
+      this.options.onComplete?.(file, true);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       await this.fail(error);
@@ -217,7 +318,6 @@ export class TransferReceiver {
       this.lastSampleTime = now;
       this.lastSampleBytes = this.bytesReceived;
     }
-
     this.emitProgress(false);
   }
 
@@ -236,8 +336,23 @@ export class TransferReceiver {
     );
   }
 
+  private async ensureWakeLock(): Promise<void> {
+    if (!this.wakeLockAcquired) {
+      this.wakeLockAcquired = true;
+      await acquireWakeLock();
+    }
+  }
+
+  private cleanup(): void {
+    if (this.wakeLockAcquired) {
+      this.wakeLockAcquired = false;
+      void releaseWakeLock();
+    }
+  }
+
   private async fail(error: Error): Promise<void> {
     this.state = 'error';
+    this.cleanup();
     this.transport.sendControl({
       t: 'cancel',
       transferId: this.transferId,
@@ -245,8 +360,9 @@ export class TransferReceiver {
     });
     try {
       await this.writer.abort();
+      await deleteResumeRecord(this.transferId);
     } catch {
-      // ignore writer abort errors on failure path
+      // ignore
     }
     this.options.onError?.(error);
   }

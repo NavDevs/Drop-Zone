@@ -12,6 +12,7 @@ import {
   extractSelectedCandidateTypes,
   type ConnectionClass,
 } from './stats.js';
+import { supportsFsAccess, supportsOpfs } from '../transfer/capability.js';
 
 const STATS_POLL_INTERVAL_MS = 1000;
 
@@ -332,8 +333,8 @@ export class PeerSession {
       name: this.opts.name,
       caps: {
         maxMessageSize: this.opts.maxMessageSize ?? 65536,
-        fsAccess: false,
-        opfs: false,
+        fsAccess: supportsFsAccess(),
+        opfs: supportsOpfs(),
         channels: this.opts.channels ?? 1,
       },
     });

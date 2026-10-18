@@ -21,6 +21,10 @@ export interface TransferRecord {
   eta?: number | null;
   /** Object URL for downloading received file */
   downloadUrl?: string;
+  /** True when SHA-256 integrity check passes */
+  verified?: boolean;
+  /** Storage backend used */
+  backend?: string;
   startedAt: number;
   error?: string;
 }
