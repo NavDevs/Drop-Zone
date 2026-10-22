@@ -11,6 +11,9 @@ dist/
 .env.local
 .env.*.local
 
+# Local deployment state (contains machine-specific project links)
+.vercel/
+
 # IDE
 .vscode/
 .idea/
