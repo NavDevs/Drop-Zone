@@ -14,6 +14,8 @@ import { PeerGrid } from '../components/PeerGrid.js';
 import { RenameDialog } from '../components/RenameDialog.js';
 import { IncomingDialog } from '../components/IncomingDialog.js';
 import { TransferList } from '../components/TransferList.js';
+import { DiagnosticsDrawer } from '../components/DiagnosticsDrawer.js';
+import type { PeerLinkStats } from '../lib/rtc/PeerSession.js';
 
 export function Room() {
   const { code: urlCode } = useParams<{ code: string }>();
@@ -34,6 +36,8 @@ export function Room() {
   const [renaming, setRenaming] = useState(false);
   const [rtts, setRtts] = useState<Record<string, number | null>>({});
   const [linkClasses, setLinkClasses] = useState<Record<string, ConnectionClass | null>>({});
+  const [peerStats, setPeerStats] = useState<Record<string, PeerLinkStats>>({});
+  const [diagnosticsPeerId, setDiagnosticsPeerId] = useState<string | null>(null);
   const [roundTrip, setRoundTrip] = useState<string | null>(null);
   const [incomingOffers, setIncomingOffers] = useState<IncomingOffer[]>([]);
   const peerManager = getPeerManager();
@@ -54,6 +58,7 @@ export function Room() {
           if (prev[deviceId] === stats.connectionClass) return prev;
           return { ...prev, [deviceId]: stats.connectionClass };
         });
+        setPeerStats((prev) => ({ ...prev, [deviceId]: stats }));
       });
     });
     return () => {
@@ -211,6 +216,7 @@ export function Room() {
           linkClasses={linkClasses}
           onPing={handlePing}
           onSendFiles={handleSendFiles}
+          onOpenDiagnostics={(id) => setDiagnosticsPeerId(id)}
         />
         <p data-testid="round-trip" className="mt-2 text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
           {roundTrip ?? 'Ping a connected peer or drop a file to transfer.'}
@@ -232,6 +238,15 @@ export function Room() {
           initialName={deviceName}
           onSave={handleRename}
           onClose={() => setRenaming(false)}
+        />
+      )}
+
+      {diagnosticsPeerId && peers[diagnosticsPeerId] && (
+        <DiagnosticsDrawer
+          peer={peers[diagnosticsPeerId].device}
+          stats={peerStats[diagnosticsPeerId] ?? null}
+          isOpen={true}
+          onClose={() => setDiagnosticsPeerId(null)}
         />
       )}
     </main>

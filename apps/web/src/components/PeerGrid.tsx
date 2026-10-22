@@ -13,6 +13,7 @@ interface Props {
   linkClasses?: Record<string, ConnectionClass | null | undefined>;
   onPing?: (deviceId: string) => void;
   onSendFiles?: (deviceId: string, files: File[]) => void;
+  onOpenDiagnostics?: (deviceId: string) => void;
 }
 
 /** Roster: self + peers (FR-05). Host also sees join requests with approve/deny (FR-06). */
@@ -26,6 +27,7 @@ export function PeerGrid({
   linkClasses,
   onPing,
   onSendFiles,
+  onOpenDiagnostics,
 }: Props) {
   return (
     <div className="flex flex-col gap-4">
@@ -40,6 +42,7 @@ export function PeerGrid({
             linkClass={linkClasses?.[p.device.deviceId]}
             onPing={onPing}
             onSendFiles={onSendFiles}
+            onOpenDiagnostics={onOpenDiagnostics}
           />
         ))}
       </ul>

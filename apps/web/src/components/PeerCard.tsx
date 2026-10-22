@@ -12,6 +12,7 @@ interface Props {
   linkClass?: ConnectionClass | null;
   onPing?: (deviceId: string) => void;
   onSendFiles?: (deviceId: string, files: File[]) => void;
+  onOpenDiagnostics?: (deviceId: string) => void;
 }
 
 const PRESENCE_STYLE: Record<PeerPresence, { dot: string; label: string }> = {
@@ -38,6 +39,7 @@ export function PeerCard({
   linkClass,
   onPing,
   onSendFiles,
+  onOpenDiagnostics,
 }: Props) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,6 +119,18 @@ export function PeerCard({
 
       {!isSelf && (
         <div className="flex shrink-0 items-center gap-1.5">
+          {onOpenDiagnostics && connected && (
+            <button
+              type="button"
+              onClick={() => onOpenDiagnostics(device.deviceId)}
+              data-testid={`diagnostics-button-${device.deviceId}`}
+              className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              title="View connection diagnostics and SAS"
+            >
+              Info
+            </button>
+          )}
+
           {onPing && connected && (
             <button
               type="button"

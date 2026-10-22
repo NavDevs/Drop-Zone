@@ -5,6 +5,7 @@ import './index.css';
 import { Landing } from './routes/Landing.js';
 import { Room } from './routes/Room.js';
 import { About } from './routes/About.js';
+import { Benchmark } from './routes/Benchmark.js';
 import { Nav } from './components/Nav.js';
 import { applyTheme, useSettingsStore } from './state/settingsStore.js';
 
@@ -38,6 +39,7 @@ createRoot(rootEl).render(
         <Route element={<Layout />}>
           <Route path="/" element={<Landing />} />
           <Route path="/r/:code" element={<Room />} />
+          <Route path="/benchmark" element={<Benchmark />} />
           <Route path="/about" element={<About />} />
         </Route>
       </Routes>

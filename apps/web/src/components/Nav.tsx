@@ -14,6 +14,12 @@ export function Nav() {
         </Link>
         <div className="flex items-center gap-3">
           <Link
+            to="/benchmark"
+            className="text-sm font-medium text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded dark:text-gray-400 dark:hover:text-gray-100"
+          >
+            Benchmark
+          </Link>
+          <Link
             to="/about"
             className="text-sm font-medium text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded dark:text-gray-400 dark:hover:text-gray-100"
           >
