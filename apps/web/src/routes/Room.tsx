@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { detectDeviceType, getDeviceId } from '../lib/device.js';
 import { getSignalingClient } from '../lib/signaling/SignalingClient.js';
@@ -40,6 +40,7 @@ export function Room() {
   const [diagnosticsPeerId, setDiagnosticsPeerId] = useState<string | null>(null);
   const [roundTrip, setRoundTrip] = useState<string | null>(null);
   const [incomingOffers, setIncomingOffers] = useState<IncomingOffer[]>([]);
+  const groupFileInputRef = useRef<HTMLInputElement>(null);
   const peerManager = getPeerManager();
   const transferHub = getTransferHub();
 
@@ -143,6 +144,21 @@ export function Room() {
     void transferHub.sendFiles(deviceId, files);
   };
 
+  const handleSendToAll = (files: File[]): void => {
+    const peerIds = Object.keys(peers);
+    if (peerIds.length === 0) return;
+    for (const peerId of peerIds) {
+      void transferHub.sendFiles(peerId, files);
+    }
+  };
+
+  const handleGroupFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleSendToAll(Array.from(e.target.files));
+      e.target.value = '';
+    }
+  };
+
   const selfDevice = selfId
     ? { deviceId: selfId, name: deviceName, type: detectDeviceType() }
     : null;
@@ -203,9 +219,33 @@ export function Room() {
       />
 
       <section aria-label="Devices in this room">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-          Devices ({Object.keys(peers).length + 1})
-        </h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+            Devices ({Object.keys(peers).length + 1})
+          </h2>
+
+          <input
+            ref={groupFileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            data-testid="send-to-all-input"
+            onChange={handleGroupFileInput}
+          />
+          <button
+            type="button"
+            data-testid="send-to-all-button"
+            onClick={() => groupFileInputRef.current?.click()}
+            disabled={Object.keys(peers).length === 0}
+            className="flex items-center gap-1.5 rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-primary-700 disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
+            <span>Send to Everyone</span>
+            <span className="rounded-full bg-primary-700 px-1.5 py-0.5 text-xs text-primary-100">
+              {Object.keys(peers).length}
+            </span>
+          </button>
+        </div>
+
         <PeerGrid
           self={selfDevice}
           peers={Object.values(peers)}
@@ -219,7 +259,7 @@ export function Room() {
           onOpenDiagnostics={(id) => setDiagnosticsPeerId(id)}
         />
         <p data-testid="round-trip" className="mt-2 text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
-          {roundTrip ?? 'Ping a connected peer or drop a file to transfer.'}
+          {roundTrip ?? (Object.keys(peers).length > 0 ? 'Click "Send to Everyone" or drop files to transfer.' : 'Waiting for peers to join...')}
         </p>
       </section>
 
