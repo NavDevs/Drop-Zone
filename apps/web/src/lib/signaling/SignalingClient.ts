@@ -41,7 +41,7 @@ export function getSignalingUrl(): string {
     return /^[a-z][a-z0-9+.-]*:\/\//i.test(configured) ? configured : `https://${configured}`;
   }
   if (typeof window !== 'undefined' && !isLocalRuntime()) {
-    return `${window.location.protocol}//${window.location.hostname}:3001`;
+    return window.location.origin;
   }
   return 'http://localhost:3001';
 }

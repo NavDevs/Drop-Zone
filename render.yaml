@@ -1,19 +1,16 @@
-# Render Blueprint — hosts BOTH halves of DropZone on one platform:
+# Render Blueprint — hosts BOTH halves of DropZone in a single Web Service:
 #
-#   dropzone-web        static SPA (apps/web)              → always-on, free, global CDN
-#   dropzone-signaling  Socket.IO server (apps/signaling)  → Docker; holds long-lived WebSockets
+#   dropzone  Socket.IO server + Static SPA  → Docker; one process, one keep-alive.
 #
-# The static site never sleeps. The web service is on the free compute plan and
-# spins down after 15 min without inbound traffic — see docs/DEPLOYMENT.md for
-# the keep-alive that prevents it.
+# The service is on the free compute plan and spins down after 15 min without 
+# inbound traffic — see docs/DEPLOYMENT.md for the keep-alive that prevents it.
 #
 # Deploy: Render Dashboard → New → Blueprint → select this repository.
 # Docs:   https://render.com/docs/blueprint-spec
 
 services:
-  # ----------------------------------------------------------------- signaling
   - type: web
-    name: dropzone-signaling
+    name: dropzone
     runtime: docker
     plan: free
     region: singapore
@@ -21,17 +18,10 @@ services:
     dockerContext: .
     healthCheckPath: /healthz
     envVars:
-      # The server currently accepts every origin (see docs/DECISIONS.md); this
-      # records that explicitly instead of leaving it to the code's fallback.
       - key: CORS_ORIGINS
         value: "*"
-      # STUN is required for NAT discovery. This is set explicitly rather than
-      # left to the app's built-in default, because an *empty* env var would
-      # override that default and leave the server with no STUN at all.
       - key: STUN_URLS
         value: stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302,stun:stun2.l.google.com:19302,stun:stun.cloudflare.com:3478
-      # TURN relay for symmetric NAT. Blank = direct-only. e.g.
-      # turn:turn.example.com:3478,turns:turn.example.com:5349
       - key: TURN_URLS
         sync: false
       - key: TURN_SECRET
@@ -44,41 +34,5 @@ services:
         value: "8"
       - key: LOG_LEVEL
         value: info
-      # Blank disables GET /metrics entirely.
       - key: METRICS_TOKEN
         sync: false
-
-  # ------------------------------------------------------------------ web (SPA)
-  - type: web
-    name: dropzone-web
-    runtime: static
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter web build
-    staticPublishPath: ./apps/web/dist
-    envVars:
-      # Render injects the signaling service's bare hostname here; the client
-      # upgrades a scheme-less value to https:// (see `getSignalingUrl` in
-      # apps/web/src/lib/signaling/SignalingClient.ts).
-      - key: VITE_SIGNALING_URL
-        fromService:
-          name: dropzone-signaling
-          type: web
-          property: host
-    # Single-page app: every unknown path is served index.html so client-side
-    # routes such as /r/ABC123 resolve. Existing files are still served first.
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    headers:
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: Referrer-Policy
-        value: strict-origin-when-cross-origin
-      - path: /*
-        name: Permissions-Policy
-        value: camera=(), microphone=(), geolocation=()

@@ -1,5 +1,7 @@
 import express, { type Express } from 'express';
 import { createServer, type Server as HttpServer } from 'node:http';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -90,6 +92,15 @@ export function createSignalingServer(overrides: Partial<ServerConfig> & { metri
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(corsHandler);
 
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  // In production (Docker), assets are at ../public relative to this file (dist/createServer.js)
+  // In development, they are at ../../web/dist relative to src/createServer.ts
+  const staticPath = process.env.NODE_ENV === 'production'
+    ? path.resolve(__dirname, '../public')
+    : path.resolve(__dirname, '../../web/dist');
+
+  app.use(express.static(staticPath));
+
   const io: AppServer = new Server(httpServer, {
     cors: {
       origin: true,
@@ -148,6 +159,19 @@ export function createSignalingServer(overrides: Partial<ServerConfig> & { metri
     }
     res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
     res.send(metrics.render());
+  });
+
+  // SPA fallback: serve index.html for any unknown GET request
+  app.get(/.*/, (req, res, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/healthz') || req.path.startsWith('/metrics')) {
+      return next();
+    }
+    res.sendFile(path.join(staticPath, 'index.html'), (err) => {
+      if (err) {
+        // If index.html is missing, just 404
+        next();
+      }
+    });
   });
 
   io.on('connection', (socket) => {

@@ -12,15 +12,18 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
 COPY packages/protocol ./packages/protocol
 COPY apps/signaling ./apps/signaling
+COPY apps/web ./apps/web
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @dropzone/protocol build
+RUN pnpm --filter web build
 RUN pnpm --filter signaling build
 
-# Produce a self-contained, production-only bundle. `--legacy` is required in
-# pnpm 10 for non-injected workspace packages; it resolves the internal
-# `@dropzone/protocol` dependency into the output's node_modules.
+# Produce a self-contained, production-only bundle.
 RUN pnpm --filter signaling deploy --prod --legacy /out
+
+# Copy the built web assets into the signaling deployment's public folder
+RUN mkdir -p /out/public && cp -r apps/web/dist/* /out/public/
 
 
 FROM node:22-alpine AS runner
