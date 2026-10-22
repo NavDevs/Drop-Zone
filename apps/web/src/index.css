@@ -52,18 +52,21 @@
   z-index: 0;
 }
 
-/* CRT Scanline Overlay */
+/* CRT Scanline Overlay - subtle and non-distorting */
 .crt-scanlines {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: linear-gradient(rgba(18, 16, 20, 0) 50%, rgba(0, 0, 0, 0.28) 50%);
-  background-size: 100% 4px;
+  background: linear-gradient(
+    rgba(18, 16, 20, 0) 50%, 
+    rgba(0, 0, 0, 0.15) 50%
+  );
+  background-size: 100% 3px;
   pointer-events: none;
   z-index: 50;
-  opacity: 0.75;
+  opacity: 0.35;
 }
 
 /* Vaporwave Text Glows */

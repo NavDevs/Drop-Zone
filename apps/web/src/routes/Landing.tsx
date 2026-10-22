@@ -121,10 +121,10 @@ export function Landing() {
                 type="button"
                 onClick={() => setTtlSec(t.value)}
                 aria-pressed={ttlSec === t.value}
-                className={`font-mono text-xs uppercase tracking-wider px-3 py-1.5 border transition-all ${
+                className={`font-mono text-xs uppercase tracking-wider px-3.5 py-1.5 border transition-all cursor-pointer ${
                   ttlSec === t.value
-                    ? 'border-neonCyan bg-neonCyan text-black font-bold shadow-[0_0_15px_#00FFFF]'
-                    : 'border-retroBorder bg-black/40 text-chrome/60 hover:border-neonCyan hover:text-neonCyan'
+                    ? 'border-neonCyan bg-neonCyan text-black font-extrabold shadow-[0_0_15px_rgba(0,255,255,0.7)]'
+                    : 'border-retroBorder bg-black/50 text-chrome/80 hover:border-neonCyan hover:text-neonCyan'
                 }`}
               >
                 [{t.label}]
@@ -137,7 +137,7 @@ export function Landing() {
               type="checkbox"
               checked={requireApproval}
               onChange={(e) => setRequireApproval(e.target.checked)}
-              className="h-4 w-4 rounded-none border border-neonMagenta bg-black text-neonMagenta focus:ring-0"
+              className="h-4 w-4 rounded-none border border-neonMagenta bg-black text-neonMagenta accent-neonMagenta focus:ring-0 cursor-pointer"
             />
             REQUIRE_HOST_CLEARANCE_APPROVAL
           </label>
@@ -150,7 +150,7 @@ export function Landing() {
             className="mt-6 w-full -skew-x-12 border-2 border-neonCyan bg-transparent py-3.5 font-heading text-lg font-bold uppercase tracking-widest text-neonCyan hover:skew-x-0 hover:bg-neonCyan hover:text-black hover:shadow-[0_0_25px_#00FFFF] active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
           >
             <span className="inline-block skew-x-12 hover:skew-x-0">
-              {creating ? '&gt; INITIALIZING_PORTAL…' : 'CREATE ROOM &gt;&gt;'}
+              {creating ? '> INITIALIZING_PORTAL…' : 'CREATE ROOM >>'}
             </span>
           </button>
         </section>
