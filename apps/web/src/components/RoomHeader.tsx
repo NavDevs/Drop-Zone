@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { formatCountdown, useCountdown } from '../hooks/useCountdown.js';
 import { QrCard } from './QrCard.js';
 
 interface Props {
   code: string;
-  codeExpiresAt: number | null;
+  codeExpiresAt?: number | null;
   isHost: boolean;
   onRegenerate?: () => void;
   onCloseRoom?: () => void;
@@ -13,8 +12,7 @@ interface Props {
 }
 
 /** Room bar: big code, live expiry countdown (aria-live), copy/QR, host actions (FR-03, FR-06). */
-export function RoomHeader({ code, codeExpiresAt, isHost, onRegenerate, onCloseRoom, onLeave, onRename }: Props) {
-  const seconds = useCountdown(codeExpiresAt);
+export function RoomHeader({ code, isHost, onRegenerate, onCloseRoom, onLeave, onRename }: Props) {
   const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);
 
@@ -43,7 +41,7 @@ export function RoomHeader({ code, codeExpiresAt, isHost, onRegenerate, onCloseR
             {code}
           </p>
           <p className="mt-1 font-mono text-xs uppercase tracking-wider text-chrome/60" aria-live="polite">
-            {seconds > 0 ? `[ EXPIRES IN: ${formatCountdown(seconds)} ]` : '[ SESSION EXPIRED ]'}
+            [ PERSISTENT SESSION · STAYS ACTIVE WHILE MEMBERS ARE PRESENT ]
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">

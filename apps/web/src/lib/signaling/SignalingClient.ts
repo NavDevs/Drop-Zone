@@ -11,6 +11,7 @@ import type {
 import { buildDeviceInfo } from '../device.js';
 import { useRoomStore, type IceServerEntry } from '../../state/roomStore.js';
 import { usePeersStore } from '../../state/peersStore.js';
+import { useTransfersStore } from '../../state/transfersStore.js';
 import { friendlyError, roomClosedReason } from '../errors.js';
 import { getPeerManager } from '../rtc/PeerManager.js';
 import {
@@ -102,14 +103,6 @@ export class SignalingClient {
     });
 
     socket.on('peer:joined', (payload) => {
-      const state = useRoomStore.getState();
-      const selfId = usePeersStore.getState().selfId;
-      if (payload.device.deviceId === selfId) {
-        // approval granted (self peer:joined per DECISIONS 2026-10-17)
-        if (state.status === 'pending') {
-          useRoomStore.getState().setStatus('joined');
-        }
-      }
       usePeersStore.getState().upsertPeer(payload.device);
       this.peerManager.ensureSession(payload.device.deviceId);
     });
@@ -120,13 +113,11 @@ export class SignalingClient {
     socket.on('peer:updated', (payload) => {
       usePeersStore.getState().upsertPeer(payload.device);
     });
-    socket.on('join:request', (payload) => {
-      usePeersStore.getState().addPending(payload.device);
-    });
     socket.on('room:closed', (payload) => {
       const message = roomClosedReason(payload.reason);
       this.peerManager.destroyAll();
       usePeersStore.getState().reset();
+      useTransfersStore.getState().reset();
       useRoomStore.getState().clear();
       useRoomStore.getState().setError({ code: 'ROOM_CLOSED', message });
       this.serverBoundCode = null;
@@ -213,12 +204,13 @@ export class SignalingClient {
     }
     this.serverBoundCode = null;
     usePeersStore.getState().reset();
+    useTransfersStore.getState().reset();
     useRoomStore.getState().clear();
   }
 
   createRoom(
     device: DeviceInfo,
-    opts: { ttlSec?: RoomCreatePayload['ttlSec']; requireApproval?: boolean } = {},
+    opts: { ttlSec?: RoomCreatePayload['ttlSec'] } = {},
   ): Promise<AckResult<RoomCreateAck>> {
     return this.call(`create:${device.deviceId}`, async () => {
       usePeersStore.getState().setSelfId(device.deviceId);
@@ -234,19 +226,19 @@ export class SignalingClient {
       await this.leaveBestEffort();
       const payload: RoomCreatePayload = { device, ...opts };
       const res = await this.callEvent<'room:create', RoomCreateAck>('room:create', payload);
-    if (res.ok) {
-      this.serverBoundCode = res.data.code;
-      store.setJoined({
-        code: res.data.code,
-        isHost: true,
-        codeExpiresAt: res.data.codeExpiresAt,
-        iceServers: res.data.iceServers as IceServerEntry[],
-      });
-      usePeersStore.getState().setAll([]);
-    } else {
-      store.setError({ code: res.code, message: friendlyError(res.code) });
-    }
-    return res;
+      if (res.ok) {
+        this.serverBoundCode = res.data.code;
+        store.setJoined({
+          code: res.data.code,
+          isHost: true,
+          codeExpiresAt: res.data.codeExpiresAt,
+          iceServers: res.data.iceServers as IceServerEntry[],
+        });
+        usePeersStore.getState().setAll([]);
+      } else {
+        store.setError({ code: res.code, message: friendlyError(res.code) });
+      }
+      return res;
     });
   }
 
@@ -268,22 +260,17 @@ export class SignalingClient {
       const payload: RoomJoinPayload = { code, device };
       const res = await this.callEvent<'room:join', RoomJoinAck>('room:join', payload);
       if (res.ok) {
-        if ('pending' in res.data) {
-          this.serverBoundCode = code;
-          store.setPending(code);
-        } else {
-          this.serverBoundCode = res.data.code;
-          store.setJoined({
-            code: res.data.code,
-            isHost: false,
-            codeExpiresAt: res.data.codeExpiresAt,
-            iceServers: res.data.iceServers as IceServerEntry[],
-          });
-          usePeersStore.getState().setAll(
-            res.data.peers.map((p) => ({ device: p.device, joinedAt: p.joinedAt, presence: 'online' as const })),
-          );
-          for (const p of res.data.peers) this.peerManager.ensureSession(p.device.deviceId);
-        }
+        this.serverBoundCode = res.data.code;
+        store.setJoined({
+          code: res.data.code,
+          isHost: false,
+          codeExpiresAt: res.data.codeExpiresAt,
+          iceServers: res.data.iceServers as IceServerEntry[],
+        });
+        usePeersStore.getState().setAll(
+          res.data.peers.map((p) => ({ device: p.device, joinedAt: p.joinedAt, presence: 'online' as const })),
+        );
+        for (const p of res.data.peers) this.peerManager.ensureSession(p.device.deviceId);
       } else {
         store.setError({ code: res.code, message: friendlyError(res.code) });
       }
@@ -294,10 +281,25 @@ export class SignalingClient {
   private async rejoinAfterReconnect(): Promise<void> {
     const store = useRoomStore.getState();
     const code = store.code;
-    if (!code || (store.status !== 'joined' && store.status !== 'pending')) return;
+    if (!code || store.status !== 'joined') return;
     // joinRoom sets isHost:false on success — host migrates on disconnect
     // (DECISIONS 2026-10-17), so a rejoining device never reclaims host.
     await this.joinRoom(code);
+  }
+
+  /**
+   * Called when the tab becomes visible again after a mobile suspend. The OS may
+   * have killed the socket without firing a timely `disconnect`, so reconnect
+   * explicitly and re-join if the server had already dropped this device.
+   */
+  resumeFromBackground(): void {
+    const socket = this.socket;
+    if (!socket) return;
+    if (!socket.connected) {
+      socket.connect();
+      return;
+    }
+    if (!this.serverBoundCode) void this.rejoinAfterReconnect();
   }
 
   async leaveRoom(): Promise<void> {
@@ -307,6 +309,7 @@ export class SignalingClient {
     this.serverBoundCode = null;
     this.peerManager.destroyAll();
     usePeersStore.getState().reset();
+    useTransfersStore.getState().reset();
     useRoomStore.getState().clear();
     useRoomStore.getState().setStatus('idle');
   }
@@ -328,15 +331,6 @@ export class SignalingClient {
       } else {
         useRoomStore.getState().setError({ code: res.code, message: friendlyError(res.code) });
       }
-      return res;
-    });
-  }
-
-  approveJoiner(deviceId: string, allow: boolean): Promise<AckResult<Record<string, never>>> {
-    return this.call(`approve:${deviceId}`, async () => {
-      const res = await this.callEvent<'room:approve', Record<string, never>>('room:approve', { deviceId, allow });
-      if (res.ok) usePeersStore.getState().resolvePending(deviceId);
-      else useRoomStore.getState().setError({ code: res.code, message: friendlyError(res.code) });
       return res;
     });
   }

@@ -18,6 +18,8 @@ import { DiagnosticsDrawer } from '../components/DiagnosticsDrawer.js';
 import type { PeerLinkStats } from '../lib/rtc/PeerSession.js';
 import { useTransfersStore } from '../state/transfersStore.js';
 import { getRoomHistory } from '../lib/transfer/resumeStore.js';
+import { acquireWakeLock, releaseWakeLock } from '../lib/transfer/wakeLock.js';
+import { requestNotificationPermission } from '../lib/notifications.js';
 
 export function Room() {
   const { code: urlCode } = useParams<{ code: string }>();
@@ -27,11 +29,9 @@ export function Room() {
   const status = useRoomStore((s) => s.status);
   const storeCode = useRoomStore((s) => s.code);
   const isHost = useRoomStore((s) => s.isHost);
-  const codeExpiresAt = useRoomStore((s) => s.codeExpiresAt);
   const error = useRoomStore((s) => s.error);
 
   const peers = usePeersStore((s) => s.peers);
-  const pending = usePeersStore((s) => s.pending);
   const selfId = usePeersStore((s) => s.selfId);
   const notifications = usePeersStore((s) => s.notifications);
   const dismissNotification = usePeersStore((s) => s.dismissNotification);
@@ -83,6 +83,11 @@ export function Room() {
   useEffect(() => {
     if (!urlCode) return;
     transferHub.setRoomCode(urlCode);
+    
+    // FR-15: Ensure the local store only contains records for the current room session.
+    // Resetting before loading ensures no history leakage from previous rooms in the same tab.
+    useTransfersStore.getState().reset();
+
     void getRoomHistory(urlCode).then((records) => {
       if (records.length > 0) {
         const store = useTransfersStore.getState();
@@ -101,12 +106,21 @@ export function Room() {
   // Auto-dismiss member join/leave notifications after 4.5 seconds
   useEffect(() => {
     if (notifications.length === 0) return;
-    const latest = notifications[notifications.length - 1];
-    if (!latest) return;
-    const timer = setTimeout(() => {
-      dismissNotification(latest.id);
-    }, 4500);
-    return () => clearTimeout(timer);
+    
+    // Set timers for any notifications that don't have one yet.
+    // We use a local set to track which ones we've already scheduled in this effect instance.
+    const timers: number[] = [];
+    
+    notifications.forEach((n) => {
+      const timer = window.setTimeout(() => {
+        dismissNotification(n.id);
+      }, 4500);
+      timers.push(timer);
+    });
+
+    return () => {
+      timers.forEach((t) => clearTimeout(t));
+    };
   }, [notifications, dismissNotification]);
 
   // Tear down all RTCPeerConnections when leaving the room route.
@@ -115,6 +129,24 @@ export function Room() {
       peerManager.destroyAll();
     };
   }, [peerManager]);
+
+  // Keep the screen awake while in a room and recover the session when the tab
+  // is foregrounded after a mobile suspend (the OS drops the socket otherwise).
+  // The wake lock itself is re-requested on visibility by wakeLock.ts.
+  useEffect(() => {
+    if (status !== 'joined') return;
+    void acquireWakeLock();
+    const onVisible = (): void => {
+      if (document.visibilityState !== 'visible') return;
+      client.resumeFromBackground();
+      peerManager.resumeAll();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      void releaseWakeLock();
+    };
+  }, [status, client, peerManager]);
 
   // Round-trip probe (FR-30): send a control-channel text and measure until echoed.
   const handlePing = (deviceId: string): void => {
@@ -146,7 +178,8 @@ export function Room() {
     if (!urlCode) return;
     usePeersStore.getState().setSelfId(getDeviceId());
     const state = useRoomStore.getState();
-    if (state.code === urlCode && (state.status === 'joined' || state.status === 'pending')) return;
+    if (state.code === urlCode && state.status === 'joined') return;
+    void requestNotificationPermission();
     void client.joinRoom(urlCode);
   }, [urlCode, client]);
 
@@ -216,41 +249,6 @@ export function Room() {
     );
   }
 
-  if (status === 'pending' && urlCode) {
-    return (
-      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col items-center justify-center gap-5 p-4 text-center relative z-10">
-        <div className="w-full border-2 border-neonCyan border-t-4 border-t-neonMagenta bg-cardBg/95 backdrop-blur-md p-6 shadow-panelGlow">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <span className="relative flex h-2.5 w-2.5 items-center justify-center">
-              <span className="absolute inline-flex h-full w-full animate-ping bg-neonCyan opacity-80" />
-              <span className="relative inline-flex h-1.5 w-1.5 bg-white" />
-            </span>
-            <span className="font-mono text-xs text-neonCyan font-bold tracking-widest uppercase">
-              // CLEARANCE PENDING
-            </span>
-          </div>
-          <h1 className="font-heading text-xl sm:text-2xl font-black uppercase tracking-wider text-white neon-glow-magenta">
-            Waiting for approval…
-          </h1>
-          <p className="mt-3 font-mono text-xs sm:text-sm text-chrome/70">
-            The host must approve your clearance before you can join this room.
-          </p>
-          <div className="mt-6">
-            <button
-              type="button"
-              onClick={handleLeave}
-              className="-skew-x-6 hover:skew-x-0 border border-retroBorder bg-black/60 px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-chrome/80 hover-vapor-magenta transition cursor-pointer font-bold"
-            >
-              <span className="inline-block skew-x-6 hover:skew-x-0">
-                Cancel
-              </span>
-            </button>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
   if (status !== 'joined' || !urlCode || !selfDevice) {
     return (
       <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 relative z-10">
@@ -270,7 +268,7 @@ export function Room() {
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-5 sm:gap-6 px-3 py-4 sm:p-6 relative z-10">
       {/* Vaporwave Neon Member Activity Notifications */}
-      <div className="fixed top-14 sm:top-16 left-3 sm:left-auto right-3 sm:right-4 z-50 flex flex-col gap-2 max-w-md sm:max-w-xs w-auto sm:w-full pointer-events-none">
+      <div className="fixed top-16 sm:top-20 left-3 sm:left-auto right-3 sm:right-4 z-50 flex flex-col gap-2 max-w-md sm:max-w-xs w-auto sm:w-full pointer-events-none">
         {notifications.slice(-4).map((n) => (
           <div
             key={n.id}
@@ -299,7 +297,6 @@ export function Room() {
 
       <RoomHeader
         code={urlCode}
-        codeExpiresAt={codeExpiresAt}
         isHost={isHost}
         onRegenerate={handleRegenerate}
         onCloseRoom={handleClose}
@@ -343,9 +340,6 @@ export function Room() {
         <PeerGrid
           self={selfDevice}
           peers={Object.values(peers)}
-          pending={isHost ? Object.values(pending) : []}
-          onApprove={(id) => void client.approveJoiner(id, true)}
-          onDeny={(id) => void client.approveJoiner(id, false)}
           rtts={rtts}
           linkClasses={linkClasses}
           onPing={handlePing}

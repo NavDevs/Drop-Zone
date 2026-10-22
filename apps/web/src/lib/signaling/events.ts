@@ -5,14 +5,12 @@ import type {
   RoomJoinAck,
   RoomLeavePayload,
   RoomRegenerateAck,
-  RoomApprovePayload,
   RoomClosePayload,
   DeviceUpdatePayload,
   SignalPayload,
   PeerJoinedPayload,
   PeerLeftPayload,
   PeerUpdatedPayload,
-  JoinRequestPayload,
   RelayedSignalPayload,
   RoomClosedPayload,
   RoomCodeChangedPayload,
@@ -39,7 +37,6 @@ export interface SignalingServerEvents {
   'peer:joined': (payload: PeerJoinedPayload) => void;
   'peer:left': (payload: PeerLeftPayload) => void;
   'peer:updated': (payload: PeerUpdatedPayload) => void;
-  'join:request': (payload: JoinRequestPayload) => void;
   signal: (payload: RelayedSignalPayload) => void;
   'room:closed': (payload: RoomClosedPayload) => void;
   'room:codeChanged': (payload: RoomCodeChangedPayload) => void;
@@ -52,7 +49,6 @@ export interface SignalingClientEvents {
   'room:join': (payload: RoomJoinPayload, ack: (res: AckEnvelope<RoomJoinAck>) => void) => void;
   'room:leave': (payload: RoomLeavePayload, ack: (res: AckEnvelope<EmptyAck>) => void) => void;
   'room:regenerate': (payload: RoomClosePayload, ack: (res: AckEnvelope<RoomRegenerateAck>) => void) => void;
-  'room:approve': (payload: RoomApprovePayload, ack: (res: AckEnvelope<EmptyAck>) => void) => void;
   'room:close': (payload: RoomClosePayload, ack: (res: AckEnvelope<EmptyAck>) => void) => void;
   'device:update': (payload: DeviceUpdatePayload, ack: (res: AckEnvelope<EmptyAck>) => void) => void;
   signal: (payload: SignalPayload, ack: (res: AckEnvelope<EmptyAck>) => void) => void;

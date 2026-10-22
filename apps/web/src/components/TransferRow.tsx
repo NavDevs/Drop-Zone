@@ -12,10 +12,13 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
   const isSend = transfer.direction === 'send';
   const isActive = transfer.status === 'active';
   const isOffering = transfer.status === 'offering';
+  const isQueued = transfer.status === 'queued';
   const isDone = transfer.status === 'done';
 
   const statusBadge = () => {
     switch (transfer.status) {
+      case 'queued':
+        return <span className="border border-sunsetOrange bg-sunsetOrange/10 px-2 py-0.5 text-xs font-mono font-bold text-sunsetOrange">WAITING FOR PEER…</span>;
       case 'active':
         return <span className="border border-neonCyan bg-neonCyan/10 px-2 py-0.5 text-xs font-mono font-bold text-neonCyan shadow-[0_0_8px_#00FFFF]">TRANSFERRING</span>;
       case 'offering':
@@ -64,7 +67,7 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
         <div className="flex items-center gap-2">
           {statusBadge()}
 
-          {(isActive || isOffering) && (
+          {(isActive || isOffering || isQueued) && (
             <button
               type="button"
               onClick={() => onCancel(transfer.id)}

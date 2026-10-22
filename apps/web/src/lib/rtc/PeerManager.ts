@@ -132,6 +132,56 @@ export class PeerManager {
     };
   }
 
+  /** True when the peer's control channel is open and a message would be delivered. */
+  isReady(remoteDeviceId: string): boolean {
+    return this.sessions.get(remoteDeviceId)?.isReady() ?? false;
+  }
+
+  /**
+   * Resolve once the peer's control channel opens. Resolves `false` on timeout so
+   * callers can surface "could not connect" instead of queuing into a dead channel.
+   */
+  waitForReady(remoteDeviceId: string, timeoutMs: number): Promise<boolean> {
+    if (this.isReady(remoteDeviceId)) return Promise.resolve(true);
+    return new Promise<boolean>((resolve) => {
+      let settled = false;
+      let unsubscribe: () => void = () => {};
+      const finish = (value: boolean): void => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        unsubscribe();
+        resolve(value);
+      };
+      unsubscribe = this.subscribeReady((deviceId) => {
+        if (deviceId === remoteDeviceId) finish(true);
+      });
+      const timer = setTimeout(() => finish(false), timeoutMs);
+    });
+  }
+
+  /**
+   * Recover after the tab was suspended/hidden: make sure every room peer has a
+   * session, rebuild the ones that died, and nudge the rest to renegotiate.
+   */
+  resumeAll(): void {
+    for (const deviceId of Object.keys(usePeersStore.getState().peers)) {
+      const session = this.sessions.get(deviceId);
+      if (!session) {
+        this.ensureSession(deviceId);
+        continue;
+      }
+      if (session.isReady()) continue;
+      const state = session.getState();
+      if (state === 'failed' || state === 'closed') {
+        this.removeSession(deviceId);
+        this.ensureSession(deviceId);
+      } else {
+        session.attemptRecovery();
+      }
+    }
+  }
+
   /** Drop a peer's session (peer left or room closed). */
   removeSession(remoteDeviceId: string): void {
     const session = this.sessions.get(remoteDeviceId);

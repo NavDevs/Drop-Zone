@@ -6,7 +6,6 @@ export type RoomStatus =
   | 'creating'
   | 'joining'
   | 'joined'
-  | 'pending'
   | 'left'
   | 'error';
 
@@ -26,7 +25,6 @@ interface RoomState {
   status: RoomStatus;
   code: string | null;
   isHost: boolean;
-  requireApproval: boolean;
   codeExpiresAt: number | null;
   iceServers: IceServerEntry[];
   error: RoomError | null;
@@ -36,10 +34,8 @@ interface RoomState {
   setStatus: (status: RoomStatus) => void;
   setLink: (link: RoomState['link']) => void;
   setJoined: (info: { code: string; isHost: boolean; codeExpiresAt: number; iceServers: IceServerEntry[] }) => void;
-  setPending: (code: string) => void;
   setCode: (code: string, codeExpiresAt: number) => void;
   setIceServers: (iceServers: IceServerEntry[]) => void;
-  setRequireApproval: (v: boolean) => void;
   setError: (error: RoomError | null) => void;
   clear: () => void;
 }
@@ -48,7 +44,6 @@ const initial = {
   status: 'idle' as RoomStatus,
   code: null,
   isHost: false,
-  requireApproval: false,
   codeExpiresAt: null,
   iceServers: [] as IceServerEntry[],
   error: null,
@@ -61,10 +56,8 @@ export const useRoomStore = create<RoomState>((set) => ({
   setLink: (link) => set({ link }),
   setJoined: ({ code, isHost, codeExpiresAt, iceServers }) =>
     set({ status: 'joined', code, isHost, codeExpiresAt, iceServers, error: null }),
-  setPending: (code) => set({ status: 'pending', code, error: null }),
   setCode: (code, codeExpiresAt) => set({ code, codeExpiresAt }),
   setIceServers: (iceServers) => set({ iceServers }),
-  setRequireApproval: (v) => set({ requireApproval: v }),
   setError: (error) => set(error ? { status: 'error', error } : { error: null }),
   clear: () => set({ ...initial, link: useRoomStore.getState().link }),
 }));

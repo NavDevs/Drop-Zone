@@ -395,6 +395,31 @@ export class PeerSession {
     return this.state;
   }
 
+  /**
+   * True once the control channel is open, which is the earliest point an offer
+   * can actually be delivered (negotiated channels open with the SCTP association).
+   */
+  isReady(): boolean {
+    return this.control?.readyState === 'open';
+  }
+
+  /** True once the remote peer's hello landed, i.e. capabilities are negotiated. */
+  hasRemoteHello(): boolean {
+    return this.remoteMaxMessageSize !== null;
+  }
+
+  /**
+   * Best-effort recovery after a suspend: if the channel is already open there is
+   * nothing to do, otherwise renegotiate ICE from a clean attempt budget.
+   */
+  attemptRecovery(): void {
+    if (this.destroyed || this.isReady()) return;
+    this.reconnectAttempts = 0;
+    if (this.pc && this.pc.connectionState !== 'closed') {
+      this.restartIce();
+    }
+  }
+
   /** Tear down PC, channels, and timers. Idempotent. */
   destroy(): void {
     if (this.destroyed) return;

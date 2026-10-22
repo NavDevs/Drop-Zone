@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type { DeviceInfo } from '@dropzone/protocol';
+import { randomId } from '../lib/device.js';
+import { sendSystemNotification } from '../lib/notifications.js';
 
 export type PeerPresence = 'online' | 'connecting' | 'direct' | 'relayed' | 'offline';
 
@@ -19,8 +21,6 @@ export interface PeerNotification {
 interface PeersState {
   /** Other devices in the room, keyed by deviceId (self excluded). */
   peers: Record<string, PeerRecord>;
-  /** Host view: join requests awaiting approval, keyed by deviceId. */
-  pending: Record<string, DeviceInfo>;
   notifications: PeerNotification[];
   selfId: string | null;
 
@@ -29,15 +29,12 @@ interface PeersState {
   setPresence: (deviceId: string, presence: PeerPresence) => void;
   removePeer: (deviceId: string) => void;
   setAll: (peers: PeerRecord[]) => void;
-  addPending: (device: DeviceInfo) => void;
-  resolvePending: (deviceId: string) => void;
   dismissNotification: (id: string) => void;
   reset: () => void;
 }
 
 const initial = {
   peers: {} as Record<string, PeerRecord>,
-  pending: {} as Record<string, DeviceInfo>,
   notifications: [] as PeerNotification[],
   selfId: null as string | null,
 };
@@ -49,10 +46,13 @@ export const usePeersStore = create<PeersState>((set) => ({
     set((s) => {
       if (device.deviceId === s.selfId) return s;
       const existing = s.peers[device.deviceId];
+      if (!existing) {
+        sendSystemNotification('Peer Joined', `${device.name} is now online in the room.`);
+      }
       const newNotifications = !existing
         ? [
             ...s.notifications,
-            { id: crypto.randomUUID(), type: 'join' as const, name: device.name, timestamp: Date.now() },
+            { id: randomId(), type: 'join' as const, name: device.name, timestamp: Date.now() },
           ]
         : s.notifications;
       return {
@@ -76,17 +76,18 @@ export const usePeersStore = create<PeersState>((set) => ({
   removePeer: (deviceId) =>
     set((s) => {
       const existing = s.peers[deviceId];
+      if (existing) {
+        sendSystemNotification('Peer Left', `${existing.device.name} has left the room.`);
+      }
       const peers = { ...s.peers };
       delete peers[deviceId];
-      const pending = { ...s.pending };
-      delete pending[deviceId];
       const newNotifications = existing
         ? [
             ...s.notifications,
-            { id: crypto.randomUUID(), type: 'leave' as const, name: existing.device.name, timestamp: Date.now() },
+            { id: randomId(), type: 'leave' as const, name: existing.device.name, timestamp: Date.now() },
           ]
         : s.notifications;
-      return { peers, pending, notifications: newNotifications };
+      return { peers, notifications: newNotifications };
     }),
   dismissNotification: (id) =>
     set((s) => ({
@@ -101,14 +102,6 @@ export const usePeersStore = create<PeersState>((set) => ({
         }
       }
       return { peers };
-    }),
-  addPending: (device) =>
-    set((s) => (s.selfId === device.deviceId ? s : { pending: { ...s.pending, [device.deviceId]: device } })),
-  resolvePending: (deviceId) =>
-    set((s) => {
-      const pending = { ...s.pending };
-      delete pending[deviceId];
-      return { pending };
     }),
   reset: () => set({ ...initial }),
 }));

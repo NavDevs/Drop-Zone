@@ -1,25 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import type { RoomCreatePayload } from '@dropzone/protocol';
 import { buildDeviceInfo } from '../lib/device.js';
 import { getSignalingClient } from '../lib/signaling/SignalingClient.js';
+import { requestNotificationPermission } from '../lib/notifications.js';
 import { useRoomStore } from '../state/roomStore.js';
 import { useSettingsStore } from '../state/settingsStore.js';
 import { ErrorBanner } from '../components/ErrorBanner.js';
 
-type TtlSec = NonNullable<RoomCreatePayload['ttlSec']>;
-
-const TTL_CHOICES: { label: string; value: TtlSec }[] = [
-  { label: '5 min', value: 300 },
-  { label: '10 min', value: 600 },
-  { label: '30 min', value: 1800 },
-  { label: '1 hour', value: 3600 },
-];
-
 export function Landing() {
   const [code, setCode] = useState('');
-  const [ttlSec, setTtlSec] = useState<TtlSec>(300);
-  const [requireApproval, setRequireApproval] = useState(false);
   const [creating, setCreating] = useState(false);
   const deviceName = useSettingsStore((s) => s.deviceName);
   const setDeviceName = useSettingsStore((s) => s.setDeviceName);
@@ -32,6 +21,7 @@ export function Landing() {
   const handleJoin = (): void => {
     const finalName = nameInput.trim() || deviceName;
     setDeviceName(finalName);
+    void requestNotificationPermission();
     if (code.length === 6) navigate(`/r/${code.toUpperCase()}`);
   };
 
@@ -40,8 +30,9 @@ export function Landing() {
     setCreating(true);
     const finalName = nameInput.trim() || deviceName;
     setDeviceName(finalName);
+    void requestNotificationPermission();
     const device = { ...buildDeviceInfo(), name: finalName };
-    const res = await client.createRoom(device, { ttlSec, requireApproval });
+    const res = await client.createRoom(device);
     setCreating(false);
     if (res.ok) navigate(`/r/${res.data.code}`);
     // on failure the store error is set; rendered below
@@ -126,45 +117,12 @@ export function Landing() {
             <span className="font-mono text-xs text-chrome/40">[ENCRYPTED]</span>
           </div>
 
-          <p className="text-xs uppercase font-mono tracking-wider text-chrome/70 mb-3">
-            &gt; Room expires after:
-          </p>
-          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-2.5" role="group" aria-label="Room lifetime">
-            {TTL_CHOICES.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => setTtlSec(t.value)}
-                aria-pressed={ttlSec === t.value}
-                className={`font-mono text-xs uppercase tracking-wider px-3 sm:px-3.5 py-2 sm:py-1.5 border transition-all duration-150 cursor-pointer -skew-x-6 hover:skew-x-0 text-center ${
-                  ttlSec === t.value
-                    ? 'border-neonCyan vapor-button-cyan font-black'
-                    : 'border-retroBorder bg-black/60 text-chrome/80 hover-vapor-cyan'
-                }`}
-              >
-                <span className="inline-block skew-x-6 hover:skew-x-0 font-bold">
-                  [{t.label}]
-                </span>
-              </button>
-            ))}
-          </div>
-
-          <label className="mt-4 flex items-center gap-2 text-xs uppercase font-mono text-chrome/80 select-none cursor-pointer">
-            <input
-              type="checkbox"
-              checked={requireApproval}
-              onChange={(e) => setRequireApproval(e.target.checked)}
-              className="h-4 w-4 rounded-none border border-neonMagenta bg-black text-neonMagenta accent-neonMagenta focus:ring-0 cursor-pointer"
-            />
-            REQUIRE HOST CLEARANCE APPROVAL
-          </label>
-
           <button
             type="button"
             aria-label="Create room"
             onClick={() => void handleCreate()}
             disabled={creating}
-            className="group mt-6 w-full -skew-x-12 border-2 border-neonCyan bg-black/60 py-3.5 font-heading text-base sm:text-lg font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover-vapor-cyan active:scale-95 disabled:opacity-50 cursor-pointer shadow-[0_0_10px_rgba(0,255,255,0.2)]"
+            className="group mt-2 w-full -skew-x-12 border-2 border-neonCyan bg-black/60 py-3.5 font-heading text-base sm:text-lg font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover-vapor-cyan active:scale-95 disabled:opacity-50 cursor-pointer shadow-[0_0_10px_rgba(0,255,255,0.2)]"
           >
             <span className="inline-block skew-x-12 text-neonCyan drop-shadow-[0_0_8px_rgba(0,255,255,0.9)] group-hover:text-white group-hover:skew-x-0 group-hover:drop-shadow-[0_0_16px_#00FFFF] transition-all duration-200">
               {creating ? '> INITIALIZING ROOM...' : 'CREATE ROOM >>'}

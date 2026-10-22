@@ -226,4 +226,47 @@ describe('PeerSession', () => {
     session.destroy();
     expect(session.getState()).toBe('closed');
   });
+
+  it('is ready only once the control channel is open', () => {
+    const { session, pc } = harness();
+    session.start();
+
+    pc.control().readyState = 'connecting';
+    expect(session.isReady()).toBe(false);
+
+    pc.control().readyState = 'open';
+    expect(session.isReady()).toBe(true);
+  });
+
+  it('reports remote hello only after caps are received', () => {
+    const { session, pc } = harness();
+    session.start();
+    expect(session.hasRemoteHello()).toBe(false);
+
+    pc.control().emit(
+      JSON.stringify({
+        t: 'hello',
+        v: 1,
+        deviceId: DEVICE_B,
+        name: 'Peer',
+        caps: { maxMessageSize: 65536, fsAccess: true, opfs: true, channels: 1 },
+      }),
+    );
+
+    expect(session.hasRemoteHello()).toBe(true);
+    expect(session.getRemoteMaxMessageSize()).toBe(65536);
+  });
+
+  it('attemptRecovery restarts ICE only while the channel is not ready', () => {
+    const { session, pc } = harness();
+    session.start();
+
+    pc.control().readyState = 'open';
+    session.attemptRecovery();
+    expect(pc.restartIceCalls).toBe(0);
+
+    pc.control().readyState = 'connecting';
+    session.attemptRecovery();
+    expect(pc.restartIceCalls).toBe(1);
+  });
 });

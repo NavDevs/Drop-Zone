@@ -26,6 +26,13 @@ export interface IncomingOffer {
   lowSpaceWarning?: boolean;
 }
 
+/**
+ * How long a queued send waits for the peer's data channel to open before it is
+ * failed with a visible error. Offers queued on a channel that never opens would
+ * otherwise sit at "HANDSHAKE…" forever.
+ */
+export const SEND_READY_TIMEOUT_MS = 30000;
+
 declare global {
   interface Window {
     __dropzone?: {
@@ -142,6 +149,7 @@ export class TransferHub {
     }
 
     const transferIds: number[] = [];
+    const ready = this.peerManager.isReady(remoteDeviceId);
 
     for (const file of files) {
       this.sharedFiles.set(`${file.name}-${file.size}`, file);
@@ -156,7 +164,7 @@ export class TransferHub {
         size: file.size,
         mime: file.type || 'application/octet-stream',
         direction: 'send',
-        status: 'offering',
+        status: ready ? 'offering' : 'queued',
         progress: 0,
         transferred: 0,
         speed: 0,
@@ -213,10 +221,42 @@ export class TransferHub {
       });
 
       this.senders.set(transferId, sender);
-      sender.start();
+      this.startWhenReady(remoteDeviceId, transferId, sender);
     }
 
     return transferIds;
+  }
+
+  /**
+   * Dispatch the offer only once the peer's control channel is confirmed open.
+   * `PeerSession.sendControl` returns `true` while a channel is still connecting
+   * (it queues the message), so calling `start()` blindly leaves the transfer
+   * stuck at "HANDSHAKE…" if the channel never opens.
+   */
+  private startWhenReady(deviceId: string, transferId: number, sender: TransferSender): void {
+    const go = (): void => {
+      if (sender.getState() !== 'idle') return;
+      useTransfersStore.getState().update(transferId, { status: 'offering', error: undefined });
+      sender.start();
+    };
+
+    if (this.peerManager.isReady(deviceId)) {
+      go();
+      return;
+    }
+
+    void this.peerManager.waitForReady(deviceId, SEND_READY_TIMEOUT_MS).then((ready) => {
+      if (ready) {
+        go();
+        return;
+      }
+      if (sender.getState() !== 'idle') return;
+      useTransfersStore.getState().update(transferId, {
+        status: 'error',
+        error: 'Could not connect to peer. Retry once it is back online.',
+      });
+      this.senders.delete(transferId);
+    });
   }
 
   /**
@@ -509,9 +549,14 @@ export class TransferHub {
 
     for (const [id, sender] of this.senders.entries()) {
       const record = useTransfersStore.getState().transfers[id];
-      if (record?.peerId === deviceId && sender.getState() === 'paused') {
+      if (record?.peerId !== deviceId) continue;
+      if (sender.getState() === 'paused') {
         useTransfersStore.getState().update(id, { error: undefined });
         sender.resume();
+      } else if (sender.getState() === 'idle') {
+        // 3. Dispatch offers that were queued while the peer was still connecting.
+        useTransfersStore.getState().update(id, { status: 'offering', error: undefined });
+        sender.start();
       }
     }
   }
@@ -527,7 +572,7 @@ export class TransferHub {
 
     const allTransfers = Object.values(useTransfersStore.getState().transfers);
     const roomRecords = allTransfers.filter(
-      (t) => (t.status === 'done' || t.status === 'active') && (!t.roomCode || t.roomCode === this.currentRoomCode),
+      (t) => (t.status === 'done' || t.status === 'active') && t.roomCode === this.currentRoomCode,
     );
     if (roomRecords.length === 0) return;
 

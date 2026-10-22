@@ -16,8 +16,8 @@ interface Props {
 }
 
 const PRESENCE_STYLE: Record<PeerPresence, { dot: string; label: string }> = {
-  online: { dot: 'bg-emerald-500', label: 'Online' },
-  connecting: { dot: 'bg-amber-400', label: 'Connecting' },
+  online: { dot: 'bg-amber-400', label: 'In room — connecting' },
+  connecting: { dot: 'bg-amber-400', label: 'Connecting…' },
   direct: { dot: 'bg-sky-500', label: 'Connected (direct)' },
   relayed: { dot: 'bg-violet-500', label: 'Relayed (TURN)' },
   offline: { dot: 'bg-gray-400', label: 'Offline' },

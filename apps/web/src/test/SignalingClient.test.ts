@@ -85,16 +85,6 @@ describe('SignalingClient', () => {
     expect(useRoomStore.getState().error?.code).toBe('RATE_LIMITED');
   });
 
-  it('joinRoom pending path sets status pending', async () => {
-    mockSocket.emit.mockImplementation((_e: string, _p: unknown, ack?: (err: null, res: unknown) => void) => {
-      ack?.(null, { pending: true });
-    });
-
-    const res = await client.joinRoom('ABC234', device('j-1'));
-    expect(res.ok).toBe(true);
-    expect(useRoomStore.getState().status).toBe('pending');
-  });
-
   it('joinRoom success populates peers excluding self', async () => {
     usePeersStore.getState().setSelfId('me');
     mockSocket.emit.mockImplementation((_e: string, p: unknown, ack?: (err: null, res: unknown) => void) => {
@@ -126,12 +116,6 @@ describe('SignalingClient', () => {
     mockSocket.__fire('peer:joined', { device: device('other'), joinedAt: 1 });
     mockSocket.__fire('peer:left', { deviceId: 'other' });
     expect(Object.keys(usePeersStore.getState().peers)).toHaveLength(0);
-  });
-
-  it('join:request adds a pending joiner for the host', () => {
-    usePeersStore.getState().setSelfId('host');
-    mockSocket.__fire('join:request', { device: device('req', 'Requester') });
-    expect(usePeersStore.getState().pending['req']?.name).toBe('Requester');
   });
 
   it('room:closed clears room + sets error', () => {

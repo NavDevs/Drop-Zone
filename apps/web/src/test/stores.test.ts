@@ -20,13 +20,6 @@ describe('roomStore', () => {
     expect(s.isHost).toBe(true);
   });
 
-  it('setPending marks pending and clears error', () => {
-    useRoomStore.getState().setError({ code: 'INTERNAL', message: 'x' });
-    useRoomStore.getState().setPending('XYZ789');
-    expect(useRoomStore.getState().status).toBe('pending');
-    expect(useRoomStore.getState().error).toBeNull();
-  });
-
   it('setError sets error status', () => {
     useRoomStore.getState().setError({ code: 'ROOM_CLOSED', message: 'gone' });
     expect(useRoomStore.getState().status).toBe('error');
@@ -60,15 +53,6 @@ describe('peersStore', () => {
       { device: device('p2'), joinedAt: 2, presence: 'online' },
     ]);
     expect(Object.keys(usePeersStore.getState().peers)).toEqual(['p2']);
-  });
-
-  it('addPending / resolvePending round-trips', () => {
-    usePeersStore.getState().reset();
-    usePeersStore.getState().setSelfId('self-1');
-    usePeersStore.getState().addPending(device('req-1', 'Requester'));
-    expect(usePeersStore.getState().pending['req-1']?.name).toBe('Requester');
-    usePeersStore.getState().resolvePending('req-1');
-    expect(usePeersStore.getState().pending['req-1']).toBeUndefined();
   });
 });
 
