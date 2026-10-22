@@ -9,10 +9,11 @@ import {
 import type { IceServerEntry } from '../../state/roomStore.js';
 import {
   classifyCandidateTypes,
-  extractSelectedCandidateTypes,
+  extractDetailedLinkReport,
   type ConnectionClass,
 } from './stats.js';
 import { supportsFsAccess, supportsOpfs } from '../transfer/capability.js';
+import { computeSas } from './sas.js';
 
 const STATS_POLL_INTERVAL_MS = 1000;
 
@@ -28,12 +29,18 @@ const ICE_MAX_RECONNECT_ATTEMPTS = 5;
 const PING_INTERVAL_MS = 5000;
 const PONG_TIMEOUT_MS = 15000;
 
-/** App-level RTT sampled from ping/pong, surfaced to the diagnostics UI. */
+/** App-level RTT and transport diagnostics surfaced to the diagnostics UI (FR-31, FR-32, FR-33). */
 export interface PeerLinkStats {
   rttMs: number | null;
   lastSeenAt: number | null;
   /** 'direct' (local or internet) vs 'relayed' (TURN); null until a pair is selected. */
   connectionClass: ConnectionClass | null;
+  sas?: string | null;
+  localCandidateType?: string | null;
+  remoteCandidateType?: string | null;
+  protocol?: string | null;
+  availableOutgoingBitrate?: number | null;
+  bufferedAmount?: number;
 }
 
 interface PeerSessionOptions {
@@ -107,6 +114,7 @@ export class PeerSession {
         await pc.setLocalDescription();
         if (pc.localDescription) {
           this.opts.sendSignal('description', { sdp: pc.localDescription.sdp, type: pc.localDescription.type });
+          this.checkSas();
         }
       } catch (err) {
         this.opts.onError?.(err instanceof Error ? err : new Error(String(err)));
@@ -219,6 +227,7 @@ export class PeerSession {
           this.opts.sendSignal('description', { sdp: pc.localDescription.sdp, type: pc.localDescription.type });
         }
       }
+      this.checkSas();
     } catch (err) {
       this.opts.onError?.(err instanceof Error ? err : new Error(String(err)));
     }
@@ -254,7 +263,7 @@ export class PeerSession {
     return { ...this.stats };
   }
 
-  /** Read the selected candidate pair and refine direct/relayed (TRD §10.1, FR-30). */
+  /** Read the selected candidate pair and refine direct/relayed (TRD §10.1, FR-30, FR-31). */
   private async classifyConnection(): Promise<void> {
     const pc = this.pc;
     if (!pc || this.destroyed) return;
@@ -262,14 +271,47 @@ export class PeerSession {
       const report = await pc.getStats();
       const map = new Map<string, RTCStats>();
       report.forEach((stat) => map.set(stat.id, stat));
-      const types = extractSelectedCandidateTypes(map);
-      if (!types) return;
-      const connectionClass = classifyCandidateTypes(types.localType, types.remoteType);
-      if (this.stats.connectionClass === connectionClass) return;
-      this.stats = { ...this.stats, connectionClass };
+      const detailed = extractDetailedLinkReport(map);
+      if (!detailed) return;
+      const connectionClass = classifyCandidateTypes(detailed.localType, detailed.remoteType);
+
+      let bufferedAmount = 0;
+      if (this.control && this.control.readyState === 'open') {
+        bufferedAmount += this.control.bufferedAmount;
+      }
+      for (const dc of this.dataChannels) {
+        if (dc.readyState === 'open') {
+          bufferedAmount += dc.bufferedAmount;
+        }
+      }
+
+      this.stats = {
+        ...this.stats,
+        connectionClass,
+        localCandidateType: detailed.localType,
+        remoteCandidateType: detailed.remoteType,
+        protocol: detailed.protocol,
+        availableOutgoingBitrate: detailed.availableOutgoingBitrate,
+        bufferedAmount,
+        rttMs: detailed.currentRoundTripTimeMs ?? this.stats.rttMs,
+      };
       this.opts.onStats?.(this.getStats());
     } catch (err) {
       this.opts.onError?.(err instanceof Error ? err : new Error(String(err)));
+    }
+  }
+
+  private async checkSas(): Promise<void> {
+    const pc = this.pc;
+    if (!pc || !pc.localDescription?.sdp || !pc.remoteDescription?.sdp) return;
+    try {
+      const sas = await computeSas(pc.localDescription.sdp, pc.remoteDescription.sdp);
+      if (sas && this.stats.sas !== sas) {
+        this.stats = { ...this.stats, sas };
+        this.opts.onStats?.(this.getStats());
+      }
+    } catch {
+      // SAS generation failure should not disrupt the connection
     }
   }
 

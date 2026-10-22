@@ -1,4 +1,4 @@
-/** Connection classification per TRD §10.1 and FR-30/FR-05. */
+/** Connection classification per TRD §10.1, §12 and FR-30/FR-31/FR-32. */
 
 /** FR-30 badge classes derived from the selected ICE candidate pair. */
 export type ConnectionClass = 'direct-local' | 'direct-internet' | 'relayed';
@@ -28,17 +28,32 @@ export function normalizeCandidateType(raw: unknown): CandidateType {
   return 'unknown';
 }
 
+export interface DetailedLinkReport {
+  localType: CandidateType;
+  remoteType: CandidateType;
+  currentRoundTripTimeMs?: number;
+  availableOutgoingBitrate?: number;
+  protocol?: string;
+  bytesSent?: number;
+  bytesReceived?: number;
+}
+
 /**
- * Extract the selected candidate pair's endpoint types from a getStats() report.
- *
- * Follows TRD §10.1: find the `transport` stat → `selectedCandidatePairId` →
- * `candidate-pair`; fall back to a pair with `nominated && state === 'succeeded'`.
- * Returns `undefined` when no pair is selected yet.
+ * Extract the selected candidate pair's endpoint types and link metrics from a getStats() report (TRD §12).
  */
 export function extractSelectedCandidateTypes(report: Map<string, RTCStats>): {
   localType: CandidateType;
   remoteType: CandidateType;
 } | undefined {
+  const detailed = extractDetailedLinkReport(report);
+  if (!detailed) return undefined;
+  return {
+    localType: detailed.localType,
+    remoteType: detailed.remoteType,
+  };
+}
+
+export function extractDetailedLinkReport(report: Map<string, RTCStats>): DetailedLinkReport | undefined {
   let pairId: string | undefined;
   for (const stat of report.values()) {
     if (stat.type === 'transport' && 'selectedCandidatePairId' in stat) {
@@ -55,6 +70,10 @@ export function extractSelectedCandidateTypes(report: Map<string, RTCStats>): {
     remoteCandidateId?: string;
     nominated?: boolean;
     state?: string;
+    currentRoundTripTime?: number;
+    availableOutgoingBitrate?: number;
+    bytesSent?: number;
+    bytesReceived?: number;
   };
 
   let pair: CandidatePairStat | undefined;
@@ -77,14 +96,25 @@ export function extractSelectedCandidateTypes(report: Map<string, RTCStats>): {
   }
   if (!pair) return undefined;
 
+  let protocol: string | undefined;
   const readCandidateType = (id: string | undefined): CandidateType => {
     if (!id) return 'unknown';
-    const cand = report.get(id) as (RTCStats & { candidateType?: string }) | undefined;
+    const cand = report.get(id) as (RTCStats & { candidateType?: string; protocol?: string }) | undefined;
+    if (cand?.protocol) protocol = cand.protocol;
     return normalizeCandidateType(cand?.candidateType);
   };
 
+  const localType = readCandidateType(pair.localCandidateId);
+  const remoteType = readCandidateType(pair.remoteCandidateId);
+  const rttMs = pair.currentRoundTripTime !== undefined ? Math.round(pair.currentRoundTripTime * 1000) : undefined;
+
   return {
-    localType: readCandidateType(pair.localCandidateId),
-    remoteType: readCandidateType(pair.remoteCandidateId),
+    localType,
+    remoteType,
+    currentRoundTripTimeMs: rttMs,
+    availableOutgoingBitrate: pair.availableOutgoingBitrate,
+    protocol: protocol ?? 'udp',
+    bytesSent: pair.bytesSent,
+    bytesReceived: pair.bytesReceived,
   };
 }
