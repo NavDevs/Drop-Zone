@@ -7,13 +7,16 @@ import { Room } from './routes/Room.js';
 import { About } from './routes/About.js';
 import { Benchmark } from './routes/Benchmark.js';
 import { Nav } from './components/Nav.js';
+import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { applyTheme, useSettingsStore } from './state/settingsStore.js';
 
 function Layout() {
   return (
     <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
       <Nav />
-      <Outlet />
+      <ErrorBoundary>
+        <Outlet />
+      </ErrorBoundary>
     </div>
   );
 }
