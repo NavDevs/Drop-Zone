@@ -100,9 +100,11 @@ export function Benchmark() {
               onClick={() => void runSyntheticSuite()}
               disabled={running}
               data-testid="run-benchmark-btn"
-              className="border-2 border-neonCyan bg-neonCyan px-6 py-2.5 font-heading text-sm font-bold uppercase tracking-wider text-black shadow-[0_0_15px_rgba(0,255,255,0.6)] hover:bg-white hover:border-white transition-all disabled:opacity-50 cursor-pointer"
+              className="-skew-x-12 border-2 border-neonCyan vapor-button-cyan px-7 py-3 font-heading text-sm font-black uppercase tracking-widest text-black hover:skew-x-0 hover:bg-white hover:text-black hover:shadow-[0_0_25px_#00FFFF] active:scale-95 transition-all duration-200 disabled:opacity-50 cursor-pointer"
             >
-              {running ? '> BENCHMARK_RUNNING…' : 'RUN BENCHMARK >>'}
+              <span className="inline-block skew-x-12 hover:skew-x-0 font-bold">
+                {running ? '> BENCHMARK_RUNNING...' : 'RUN BENCHMARK >>'}
+              </span>
             </button>
 
             {results.length > 0 && (
@@ -110,9 +112,11 @@ export function Benchmark() {
                 type="button"
                 onClick={downloadCsv}
                 data-testid="download-csv-btn"
-                className="border border-retroBorder bg-black/50 px-4 py-2 font-mono text-xs uppercase tracking-wider text-chrome hover:border-neonMagenta hover:text-neonMagenta transition-all cursor-pointer"
+                className="-skew-x-6 border border-retroBorder bg-black/60 px-4 py-2.5 font-mono text-xs uppercase tracking-wider text-chrome hover:skew-x-0 hover:border-neonMagenta hover:text-neonMagenta hover:bg-neonMagenta/10 hover:shadow-[0_0_15px_rgba(255,0,255,0.4)] active:scale-95 transition-all duration-200 cursor-pointer"
               >
-                [ EXPORT_CSV ]
+                <span className="inline-block skew-x-6 hover:skew-x-0 font-bold">
+                  [ EXPORT_CSV ]
+                </span>
               </button>
             )}
           </div>

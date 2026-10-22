@@ -121,13 +121,15 @@ export function Landing() {
                 type="button"
                 onClick={() => setTtlSec(t.value)}
                 aria-pressed={ttlSec === t.value}
-                className={`font-mono text-xs uppercase tracking-wider px-3.5 py-1.5 border transition-all cursor-pointer ${
+                className={`font-mono text-xs uppercase tracking-wider px-3.5 py-1.5 border transition-all duration-150 cursor-pointer -skew-x-6 hover:skew-x-0 ${
                   ttlSec === t.value
-                    ? 'border-neonCyan bg-neonCyan text-black font-extrabold shadow-[0_0_15px_rgba(0,255,255,0.7)]'
-                    : 'border-retroBorder bg-black/50 text-chrome/80 hover:border-neonCyan hover:text-neonCyan'
+                    ? 'border-neonCyan vapor-button-cyan font-black'
+                    : 'border-retroBorder bg-black/60 text-chrome/80 hover:border-neonCyan hover:text-neonCyan hover:bg-neonCyan/10 hover:shadow-[0_0_12px_rgba(0,255,255,0.4)]'
                 }`}
               >
-                [{t.label}]
+                <span className="inline-block skew-x-6 hover:skew-x-0 font-bold">
+                  [{t.label}]
+                </span>
               </button>
             ))}
           </div>
@@ -147,10 +149,10 @@ export function Landing() {
             aria-label="Create room"
             onClick={() => void handleCreate()}
             disabled={creating}
-            className="mt-6 w-full -skew-x-12 border-2 border-neonCyan bg-transparent py-3.5 font-heading text-lg font-bold uppercase tracking-widest text-neonCyan hover:skew-x-0 hover:bg-neonCyan hover:text-black hover:shadow-[0_0_25px_#00FFFF] active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
+            className="mt-6 w-full -skew-x-12 border-2 border-neonCyan bg-transparent py-3.5 font-heading text-lg font-bold uppercase tracking-widest text-neonCyan hover:skew-x-0 hover:bg-neonCyan hover:text-black hover:shadow-[0_0_25px_#00FFFF] active:scale-95 disabled:opacity-50 transition-all duration-200 cursor-pointer"
           >
             <span className="inline-block skew-x-12 hover:skew-x-0">
-              {creating ? '> INITIALIZING_PORTAL…' : 'CREATE ROOM >>'}
+              {creating ? '> INITIALIZING_PORTAL...' : 'CREATE ROOM >>'}
             </span>
           </button>
         </section>
@@ -180,9 +182,9 @@ export function Landing() {
               aria-label="Join"
               onClick={handleJoin}
               disabled={code.length !== 6}
-              className="-skew-x-12 border-2 border-neonMagenta bg-neonMagenta px-8 py-2.5 font-heading text-sm font-bold uppercase tracking-widest text-white hover:skew-x-0 hover:bg-transparent hover:text-neonMagenta hover:shadow-[0_0_20px_#FF00FF] disabled:opacity-40 transition-all cursor-pointer"
+              className="-skew-x-12 border-2 border-neonMagenta bg-neonMagenta px-8 py-2.5 font-heading text-sm font-bold uppercase tracking-widest text-black hover:skew-x-0 hover:bg-transparent hover:text-neonMagenta hover:shadow-[0_0_20px_#FF00FF] active:scale-95 disabled:opacity-40 transition-all duration-200 cursor-pointer"
             >
-              <span className="inline-block skew-x-12 hover:skew-x-0">
+              <span className="inline-block skew-x-12 hover:skew-x-0 font-bold">
                 JOIN
               </span>
             </button>

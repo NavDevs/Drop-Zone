@@ -13,14 +13,12 @@ export function Nav() {
           to="/"
           className="flex items-center gap-2.5 group focus:outline-none"
         >
-          {/* Custom Vaporwave DropZone Logo */}
-          <div className="relative flex h-8 w-8 items-center justify-center rounded-sm bg-gradient-to-br from-neonMagenta to-neonCyan p-0.5 shadow-[0_0_12px_rgba(255,0,255,0.7)] group-hover:shadow-[0_0_20px_#00FFFF] transition-all">
-            <div className="flex h-full w-full items-center justify-center bg-black/90">
-              <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-neonCyan stroke-2 group-hover:stroke-white transition-colors" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3v12" />
-                <path d="m6 10 6 6 6-6" />
-                <path d="M5 21h14" />
-              </svg>
+          {/* Custom Vaporwave DropZone Logo with Tilt & Glow */}
+          <div className="relative flex h-8 w-8 items-center justify-center -skew-x-12 bg-gradient-to-br from-neonMagenta to-neonCyan p-0.5 shadow-[0_0_12px_rgba(255,0,255,0.7)] group-hover:skew-x-0 group-hover:rotate-6 group-hover:shadow-[0_0_25px_#00FFFF] transition-all duration-200">
+            <div className="flex h-full w-full items-center justify-center bg-black/85">
+              <span className="font-heading font-black text-sm text-neonCyan group-hover:text-white transition-colors">
+                ▲
+              </span>
             </div>
           </div>
           <span className="font-heading text-xl font-black tracking-widest text-white group-hover:text-neonCyan transition-colors">
@@ -30,20 +28,20 @@ export function Nav() {
         <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-wider">
           <Link
             to="/benchmark"
-            className={`border px-3 py-1.5 transition-all cursor-pointer ${
+            className={`border px-3.5 py-1.5 transition-all duration-200 cursor-pointer -skew-x-6 hover:skew-x-0 active:scale-95 ${
               isCurrent('/benchmark')
-                ? 'border-neonCyan bg-neonCyan text-black font-bold shadow-[0_0_15px_rgba(0,255,255,0.6)]'
-                : 'border-retroBorder bg-black/50 text-chrome/80 hover:border-neonCyan hover:text-neonCyan hover:bg-neonCyan/10'
+                ? 'border-neonCyan bg-neonCyan text-black font-extrabold shadow-[0_0_18px_rgba(0,255,255,0.85)]'
+                : 'border-retroBorder bg-black/60 text-chrome/80 hover:border-neonCyan hover:text-neonCyan hover:bg-neonCyan/15 hover:shadow-[0_0_15px_rgba(0,255,255,0.5)]'
             }`}
           >
             [ BENCHMARK ]
           </Link>
           <Link
             to="/about"
-            className={`border px-3 py-1.5 transition-all cursor-pointer ${
+            className={`border px-3.5 py-1.5 transition-all duration-200 cursor-pointer -skew-x-6 hover:skew-x-0 active:scale-95 ${
               isCurrent('/about')
-                ? 'border-neonMagenta bg-neonMagenta text-black font-bold shadow-[0_0_15px_rgba(255,0,255,0.6)]'
-                : 'border-retroBorder bg-black/50 text-chrome/80 hover:border-neonMagenta hover:text-neonMagenta hover:bg-neonMagenta/10'
+                ? 'border-neonMagenta bg-neonMagenta text-black font-extrabold shadow-[0_0_18px_rgba(255,0,255,0.85)]'
+                : 'border-retroBorder bg-black/60 text-chrome/80 hover:border-neonMagenta hover:text-neonMagenta hover:bg-neonMagenta/15 hover:shadow-[0_0_15px_rgba(255,0,255,0.5)]'
             }`}
           >
             [ ABOUT ]
