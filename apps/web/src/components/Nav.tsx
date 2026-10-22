@@ -17,7 +17,7 @@ export function Nav() {
             className="h-8 w-8 -skew-x-12 rounded-sm transition-all duration-200 group-hover:skew-x-0 group-hover:rotate-6 group-hover:scale-110 drop-shadow-[0_0_12px_#00FFFF]"
           />
           <span className="font-heading text-xl font-black tracking-widest text-white transition-colors group-hover:text-neonCyan">
-            DROPZONE<span className="text-neonCyan font-mono text-base font-normal">.SYS</span>
+            DROPZONE
           </span>
         </Link>
 
