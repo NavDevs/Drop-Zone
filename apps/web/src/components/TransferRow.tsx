@@ -16,21 +16,21 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
   const statusBadge = () => {
     switch (transfer.status) {
       case 'active':
-        return <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Transferring</span>;
+        return <span className="border border-neonCyan bg-neonCyan/10 px-2 py-0.5 text-xs font-mono font-bold text-neonCyan shadow-[0_0_8px_#00FFFF]">TRANSFERRING</span>;
       case 'offering':
-        return <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300">Offering…</span>;
+        return <span className="border border-sunsetOrange bg-sunsetOrange/10 px-2 py-0.5 text-xs font-mono font-bold text-sunsetOrange">HANDSHAKE…</span>;
       case 'done':
         return (
-          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
-            {transfer.verified ? 'Verified ✓' : 'Complete'}
+          <span className="border border-neonMagenta bg-neonMagenta/10 px-2 py-0.5 text-xs font-mono font-bold text-neonMagenta shadow-[0_0_8px_#FF00FF]">
+            {transfer.verified ? 'VERIFIED_SHA256 ✓' : 'COMPLETE'}
           </span>
         );
       case 'declined':
-        return <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">Declined</span>;
+        return <span className="border border-retroBorder bg-black/40 px-2 py-0.5 text-xs font-mono text-chrome/50">DECLINED</span>;
       case 'cancelled':
-        return <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">Cancelled</span>;
+        return <span className="border border-retroBorder bg-black/40 px-2 py-0.5 text-xs font-mono text-chrome/50">ABORTED</span>;
       case 'error':
-        return <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">Failed</span>;
+        return <span className="border border-neonMagenta bg-neonMagenta/20 px-2 py-0.5 text-xs font-mono font-bold text-neonMagenta">FAILED</span>;
       default:
         return null;
     }
@@ -39,24 +39,22 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
   return (
     <li
       data-testid={`transfer-row-${transfer.id}`}
-      style={{ borderRadius: '185px 25px 195px 20px / 20px 195px 25px 185px' }}
-      className="flex flex-col gap-2 border-[2.5px] border-lead bg-white p-4 shadow-sketch-sm -rotate-[0.3deg]"
+      className="flex flex-col gap-2.5 border border-retroBorder bg-cardBg/90 p-4 shadow-panelGlow"
     >
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
           <span
-            style={{ borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px' }}
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center border-2 border-lead bg-paper text-lead font-bold font-mono shadow-sketch-sm"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-neonCyan/50 bg-black/60 text-neonCyan font-bold font-mono text-sm"
             aria-hidden="true"
           >
-            {isSend ? '↑' : '↓'}
+            {isSend ? '▲' : '▼'}
           </span>
           <div className="min-w-0">
-            <p className="truncate font-heading text-base font-bold text-lead" title={transfer.name}>
+            <p className="truncate font-heading text-sm font-bold text-white tracking-wide" title={transfer.name}>
               {transfer.name}
             </p>
-            <p className="text-sm text-lead/70">
-              {formatBytes(transfer.transferred)} of {formatBytes(transfer.size)}
+            <p className="text-xs font-mono text-chrome/60 uppercase">
+              {formatBytes(transfer.transferred)} / {formatBytes(transfer.size)}
             </p>
           </div>
         </div>
@@ -68,9 +66,9 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
             <button
               type="button"
               onClick={() => onCancel(transfer.id)}
-              className="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="border border-retroBorder bg-black/50 px-2.5 py-1 text-xs font-mono uppercase text-chrome/60 hover:text-white"
             >
-              Cancel
+              CANCEL
             </button>
           )}
 
@@ -79,41 +77,43 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
               href={transfer.downloadUrl}
               download={transfer.name}
               data-testid={`download-link-${transfer.id}`}
-              className="rounded-lg bg-primary-600 px-3 py-1 text-xs font-semibold text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="-skew-x-12 border border-neonCyan bg-neonCyan px-3 py-1 text-xs font-heading font-bold uppercase text-black hover:skew-x-0 hover:shadow-[0_0_12px_#00FFFF]"
             >
-              Save File
+              <span className="inline-block skew-x-12 hover:skew-x-0">
+                SAVE_DATA
+              </span>
             </a>
           )}
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="relative h-3 w-full overflow-hidden rounded-full border-2 border-lead bg-paper">
+      <div className="relative h-2 w-full overflow-hidden border border-retroBorder bg-black">
         <div
           role="progressbar"
           aria-valuenow={percent}
           aria-valuemin={0}
           aria-valuemax={100}
           style={{ width: `${percent}%` }}
-          className={`h-full transition-all duration-200 ${
+          className={`h-full transition-all duration-150 ${
             transfer.status === 'error'
-              ? 'bg-markerRed'
+              ? 'bg-neonMagenta shadow-[0_0_10px_#FF00FF]'
               : transfer.status === 'done'
-              ? 'bg-emerald-500'
-              : 'bg-ballpointBlue'
+              ? 'bg-neonCyan shadow-[0_0_10px_#00FFFF]'
+              : 'bg-gradient-to-r from-neonMagenta to-neonCyan shadow-[0_0_10px_#00FFFF]'
           }`}
         />
       </div>
 
-      <div className="flex items-center justify-between text-sm font-medium text-lead/70">
-        <span>{percent}%</span>
+      <div className="flex items-center justify-between font-mono text-xs text-chrome/60 uppercase">
+        <span>PROGRESS: {percent}%</span>
         {isActive && (
-          <div className="flex gap-3">
-            <span>Speed: {formatSpeed(transfer.speed)}</span>
-            <span>ETA: {formatEta(transfer.eta ?? null)}</span>
+          <div className="flex gap-4">
+            <span>BITRATE: {formatSpeed(transfer.speed)}</span>
+            <span>REMAINING: {formatEta(transfer.eta ?? null)}</span>
           </div>
         )}
-        {transfer.error && <span className="text-markerRed truncate font-bold">{transfer.error}</span>}
+        {transfer.error && <span className="text-neonMagenta font-bold truncate">[!] {transfer.error}</span>}
       </div>
     </li>
   );

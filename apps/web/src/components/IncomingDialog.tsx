@@ -15,70 +15,75 @@ export function IncomingDialog({ offers, onAccept, onDecline }: IncomingDialogPr
       role="dialog"
       aria-modal="true"
       aria-labelledby="incoming-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
     >
-      <div
-        style={{ borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px' }}
-        className="w-full max-w-md border-[3px] border-lead bg-paper p-6 shadow-sketch-lg rotate-[0.5deg]"
-      >
-        <div className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-markerRed border border-lead"></span>
-          <h2 id="incoming-title" className="font-heading text-2xl font-bold text-lead">
-            Incoming File{offers.length > 1 ? 's' : ''} 📦
-          </h2>
+      <div className="w-full max-w-md border-2 border-neonCyan border-t-4 border-t-neonMagenta bg-void/95 p-6 shadow-neonCyan">
+        <div className="flex items-center justify-between border-b border-retroBorder pb-3">
+          <div className="flex items-center gap-2">
+            <span className="h-3 w-3 bg-neonMagenta shadow-[0_0_8px_#FF00FF]" />
+            <h2 id="incoming-title" className="font-heading text-lg font-black tracking-widest text-white uppercase">
+              INBOUND_DATA_TRANSMISSION
+            </h2>
+          </div>
+          <div className="flex gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-neonMagenta" />
+            <span className="h-2 w-2 rounded-full bg-neonCyan" />
+          </div>
         </div>
-        <p className="mt-1 text-base text-lead/70">
-          A peer wants to send you a file. Click Accept to receive and save it.
+
+        <p className="mt-2 text-xs font-mono uppercase tracking-wider text-chrome/60">
+          // CONSENT_REQUIRED: AUTHORIZE RECEPTION TO WRITE LOCALLY
         </p>
 
         <div className="mt-4 max-h-64 space-y-3 overflow-y-auto">
           {offers.map((offer) => (
             <div
               key={offer.transferId}
-              style={{ borderRadius: '185px 25px 195px 20px / 20px 195px 25px 185px' }}
-              className="border-2 border-lead bg-white p-3.5 shadow-sketch-sm -rotate-[0.3deg]"
+              className="border border-retroBorder bg-cardBg/80 p-3.5"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-heading text-base font-bold text-lead" title={offer.name}>
-                    {offer.name}
+                  <p className="truncate font-heading text-sm font-bold text-neonCyan" title={offer.name}>
+                    &gt; {offer.name}
                   </p>
-                  <p className="text-sm text-lead/70">
-                    From <span className="font-bold text-lead">{offer.senderName}</span> • {formatBytes(offer.size)}
+                  <p className="text-xs font-mono text-chrome/70 mt-1 uppercase">
+                    ORIGIN: <span className="text-white font-bold">{offer.senderName}</span> · SIZE: {formatBytes(offer.size)}
                   </p>
                 </div>
               </div>
 
               {offer.dangerous && (
-                <div className="mt-2 rounded border-2 border-dashed border-amber-600 bg-amber-50 p-2 text-xs font-semibold text-amber-900">
-                  ⚠️ <strong>Warning:</strong> Executable file. Never run untrusted scripts!
+                <div className="mt-2 border border-sunsetOrange bg-sunsetOrange/10 p-2 text-xs font-mono text-sunsetOrange">
+                  [!] ALERT: EXECUTABLE CODE DETECTED. PROCEED WITH CAUTION.
                 </div>
               )}
 
               {offer.lowSpaceWarning && (
-                <div className="mt-2 rounded border-2 border-dashed border-markerRed bg-red-50 p-2 text-xs font-semibold text-markerRed">
-                  ⚠️ <strong>Storage Warning:</strong> Device disk space may be low.
+                <div className="mt-2 border border-neonMagenta bg-neonMagenta/10 p-2 text-xs font-mono text-neonMagenta">
+                  [!] STORAGE WARNING: LOCAL CAPACITY CRITICAL.
                 </div>
               )}
 
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3.5 flex gap-2.5">
                 <button
                   type="button"
                   data-testid={`accept-transfer-${offer.transferId}`}
                   onClick={() => onAccept(offer.transferId)}
-                  style={{ borderRadius: '255px 25px 225px 25px / 25px 225px 25px 255px' }}
-                  className="flex-1 border-2 border-lead bg-markerRed py-2 text-base font-heading font-bold text-white shadow-sketch-sm hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition cursor-pointer"
+                  className="flex-1 -skew-x-12 border border-neonCyan bg-neonCyan py-2 font-heading text-xs font-bold uppercase tracking-wider text-black hover:skew-x-0 hover:bg-transparent hover:text-neonCyan hover:shadow-[0_0_15px_#00FFFF] transition cursor-pointer"
                 >
-                  Accept & Save
+                  <span className="inline-block skew-x-12 hover:skew-x-0">
+                    ACCEPT_STREAM &gt;&gt;
+                  </span>
                 </button>
                 <button
                   type="button"
                   data-testid={`decline-transfer-${offer.transferId}`}
                   onClick={() => onDecline(offer.transferId)}
-                  style={{ borderRadius: '255px 25px 225px 25px / 25px 225px 25px 255px' }}
-                  className="border-2 border-lead bg-paper px-4 py-2 text-base font-heading font-bold text-lead shadow-sketch-sm hover:bg-mutedPaper transition cursor-pointer"
+                  className="-skew-x-12 border border-retroBorder bg-black/60 px-5 py-2 font-mono text-xs uppercase tracking-wider text-chrome/60 hover:text-white transition cursor-pointer"
                 >
-                  Decline
+                  <span className="inline-block skew-x-12 hover:skew-x-0">
+                    DECLINE
+                  </span>
                 </button>
               </div>
             </div>

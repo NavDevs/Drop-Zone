@@ -207,29 +207,28 @@ export function Room() {
   }
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-5 p-4 relative">
-      {/* Hand-drawn Floating Activity Toasts (xyz joined / abc left) */}
-      <div className="fixed top-16 right-4 z-40 flex flex-col gap-2 max-w-xs w-full pointer-events-none">
+    <main className="mx-auto flex max-w-4xl flex-col gap-6 p-4 relative z-10">
+      {/* Vaporwave Neon Member Activity Notifications */}
+      <div className="fixed top-16 right-4 z-50 flex flex-col gap-2 max-w-xs w-full pointer-events-none">
         {notifications.slice(-4).map((n) => (
           <div
             key={n.id}
-            style={{ borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px' }}
-            className={`pointer-events-auto flex items-center justify-between gap-2 border-2 border-lead p-3 shadow-sketch text-base font-heading font-bold transition-all ${
+            className={`pointer-events-auto flex items-center justify-between gap-3 border-2 p-3 font-mono text-xs uppercase tracking-wider backdrop-blur-md shadow-panelGlow ${
               n.type === 'join'
-                ? 'bg-postit text-lead rotate-1'
-                : 'bg-mutedPaper text-lead/80 -rotate-1'
+                ? 'border-neonCyan bg-black/90 text-neonCyan shadow-[0_0_15px_rgba(0,255,255,0.4)]'
+                : 'border-neonMagenta bg-black/90 text-neonMagenta shadow-[0_0_15px_rgba(255,0,255,0.4)]'
             }`}
           >
             <span>
-              {n.type === 'join' ? '👋 ' : '🏃 '}
-              <strong className="underline decoration-wavy decoration-markerRed">{n.name}</strong> {n.type === 'join' ? 'joined the room!' : 'left the room'}
+              {n.type === 'join' ? '▲ NODE_ONLINE: ' : '▼ NODE_OFFLINE: '}
+              <strong className="underline decoration-1">{n.name}</strong>
             </span>
             <button
               type="button"
               onClick={() => dismissNotification(n.id)}
-              className="text-lead/50 hover:text-lead px-1 font-mono text-sm"
+              className="text-chrome/50 hover:text-white px-1 font-mono text-sm"
             >
-              ✕
+              [X]
             </button>
           </div>
         ))}
@@ -247,11 +246,14 @@ export function Room() {
         onRename={() => setRenaming(true)}
       />
 
-      <section aria-label="Devices in this room">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-heading text-lg font-bold uppercase tracking-wide text-lead">
-            Devices ({Object.keys(peers).length + 1})
-          </h2>
+      <section aria-label="Devices in this room" className="border-2 border-retroBorder bg-cardBg/90 backdrop-blur-md p-5 shadow-panelGlow">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-retroBorder pb-3">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 bg-neonCyan shadow-[0_0_8px_#00FFFF]" />
+            <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-neonCyan">
+              CONNECTED_DECK_NODES ({Object.keys(peers).length + 1})
+            </h2>
+          </div>
 
           <input
             ref={groupFileInputRef}
@@ -266,12 +268,10 @@ export function Room() {
             data-testid="send-to-all-button"
             onClick={() => groupFileInputRef.current?.click()}
             disabled={Object.keys(peers).length === 0}
-            style={{ borderRadius: '255px 25px 225px 25px / 25px 225px 25px 255px' }}
-            className="flex items-center gap-2 border-[2.5px] border-lead bg-markerRed px-5 py-2.5 font-heading text-lg font-bold text-white shadow-sketch hover:shadow-sketch-sm hover:translate-x-0.5 hover:translate-y-0.5 disabled:opacity-40 transition-all cursor-pointer"
+            className="-skew-x-12 border-2 border-neonMagenta bg-neonMagenta px-5 py-2.5 font-heading text-xs font-bold uppercase tracking-widest text-black hover:skew-x-0 hover:bg-transparent hover:text-neonMagenta hover:shadow-[0_0_20px_#FF00FF] disabled:opacity-30 transition-all cursor-pointer"
           >
-            <span>Send to Everyone 📁</span>
-            <span className="rounded-full border border-white bg-lead px-2 py-0.2 text-sm font-bold text-white">
-              {Object.keys(peers).length}
+            <span className="inline-block skew-x-12 hover:skew-x-0">
+              BROADCAST DATA TO ALL ({Object.keys(peers).length}) &gt;&gt;
             </span>
           </button>
         </div>

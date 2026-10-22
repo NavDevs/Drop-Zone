@@ -12,11 +12,16 @@ import { applyTheme, useSettingsStore } from './state/settingsStore.js';
 
 function Layout() {
   return (
-    <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+    <div className="relative min-h-screen bg-void text-chrome font-mono selection:bg-neonMagenta selection:text-black">
+      <div className="synth-sun" />
+      <div className="synth-grid" />
+      <div className="crt-scanlines" />
       <Nav />
-      <ErrorBoundary>
-        <Outlet />
-      </ErrorBoundary>
+      <div className="relative z-10">
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
+      </div>
     </div>
   );
 }

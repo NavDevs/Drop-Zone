@@ -76,13 +76,12 @@ export function PeerCard({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      style={{ borderRadius: isSelf ? '225px 25px 195px 25px / 25px 195px 25px 225px' : '195px 25px 225px 20px / 20px 225px 25px 195px' }}
-      className={`relative flex items-center gap-3 border-[2.5px] border-lead px-4 py-3 transition-all ${
+      className={`relative flex items-center gap-3 border-2 p-3.5 transition-all ${
         isDragOver
-          ? 'bg-postit scale-[1.02] shadow-sketch rotate-1'
+          ? 'border-neonCyan bg-neonCyan/20 shadow-[0_0_20px_#00FFFF] scale-[1.02]'
           : isSelf
-          ? 'bg-paper shadow-sketch -rotate-[0.5deg]'
-          : 'bg-white shadow-sketch hover:rotate-[0.5deg]'
+          ? 'border-retroBorder border-t-2 border-t-neonMagenta bg-cardBg/90 shadow-panelGlow'
+          : 'border-retroBorder border-t-2 border-t-neonCyan bg-cardBg/80 hover:border-neonCyan hover:shadow-[0_0_15px_rgba(0,255,255,0.3)]'
       }`}
       data-testid="peer-card"
       data-device-id={device.deviceId}
@@ -98,18 +97,18 @@ export function PeerCard({
         />
       )}
 
-      <span className="flex h-10 w-10 items-center justify-center border-2 border-lead bg-mutedPaper text-lead shadow-sketch-sm" style={{ borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px' }}>
+      <span className="flex h-10 w-10 items-center justify-center border border-neonCyan/50 bg-black/60 text-neonCyan -skew-x-6">
         <DeviceIcon type={device.type} />
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-heading text-lg font-bold text-lead">
+        <span className="block truncate font-heading text-sm font-bold tracking-wider text-white">
           {device.name}
-          {isSelf && <span className="ml-1.5 font-body text-sm font-normal text-lead/60">(you)</span>}
+          {isSelf && <span className="ml-2 font-mono text-xs font-normal text-neonMagenta">&lt;LOCAL_HOST&gt;</span>}
         </span>
-        <span className="flex items-center gap-1.5 text-sm font-medium text-lead/70">
-          <span className={`h-2.5 w-2.5 rounded-full border border-lead ${style.dot}`} aria-hidden="true" />
-          {label}
+        <span className="flex items-center gap-2 font-mono text-xs text-chrome/60 uppercase">
+          <span className={`h-2 w-2 rounded-full ${style.dot} shadow-[0_0_8px_currentColor]`} aria-hidden="true" />
+          [{label}]
         </span>
       </span>
     </li>

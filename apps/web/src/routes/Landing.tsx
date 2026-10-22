@@ -48,17 +48,22 @@ export function Landing() {
   };
 
   return (
-    <main className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-6 p-4 md:p-8">
-      {/* Playful Header */}
-      <div className="text-center relative">
-        <span className="absolute -top-3 -right-4 -rotate-6 rounded bg-postit px-2 py-0.5 text-xs font-bold border-2 border-lead shadow-sketch-sm hidden sm:inline-block">
-          P2P · No Cloud!
-        </span>
-        <h1 className="font-heading text-5xl md:text-6xl font-bold tracking-tight text-lead -rotate-1">
-          DropZone
+    <main className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-8 p-4 md:p-8">
+      {/* Vaporwave Hero Banner (Matching ACME.SYS screenshot) */}
+      <div className="text-center relative max-w-3xl">
+        <div className="inline-block border border-neonCyan/60 bg-neonCyan/10 px-3 py-1 font-mono text-xs uppercase tracking-widest text-neonCyan -skew-x-12 mb-4 shadow-[0_0_15px_rgba(0,255,255,0.3)]">
+          &gt; v2.0 SYSTEM ONLINE // P2P DATA PROTOCOL
+        </div>
+
+        <h1 className="font-heading text-4xl sm:text-6xl md:text-7xl font-black uppercase tracking-tight text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.4)]">
+          TRANSFORM
         </h1>
-        <p className="mt-2 text-xl md:text-2xl text-lead/80">
-          Direct device-to-device file transfer. Hand-delivered over WebRTC.
+        <h2 className="sunset-gradient-text font-heading text-4xl sm:text-6xl md:text-7xl font-black uppercase tracking-tight mt-1">
+          THE WAY YOU SHARE
+        </h2>
+
+        <p className="mt-4 text-base sm:text-lg md:text-xl text-chrome/70 font-mono max-w-xl mx-auto">
+          High-velocity peer-to-peer data transport directly over WebRTC. Zero cloud storage. No file limits.
         </p>
       </div>
 
@@ -68,115 +73,125 @@ export function Landing() {
         </div>
       )}
 
-      <div className="flex w-full max-w-md flex-col gap-5">
-        {/* Your Name Box */}
-        <section
-          style={{ borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px' }}
-          className="border-[3px] border-lead bg-white p-5 shadow-sketch rotate-[0.5deg]"
-        >
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-markerRed border border-lead"></span>
-            <label htmlFor="device-name-input" className="font-heading text-lg font-bold text-lead">
-              Your Device Name
-            </label>
+      {/* Retro-Futuristic Terminal Control Boxes */}
+      <div className="flex w-full max-w-xl flex-col gap-6">
+        {/* Device Identity Terminal */}
+        <section className="border-2 border-retroBorder border-t-2 border-t-neonMagenta bg-cardBg/90 backdrop-blur-md p-5 shadow-panelGlow relative">
+          <div className="flex items-center justify-between border-b border-retroBorder pb-2.5 mb-4">
+            <span className="font-mono text-xs text-neonMagenta font-bold tracking-widest uppercase">
+              // TERMINAL_NODE_ID
+            </span>
+            <div className="flex gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-neonMagenta" />
+              <span className="h-2 w-2 rounded-full bg-neonCyan" />
+              <span className="h-2 w-2 rounded-full bg-sunsetOrange" />
+            </div>
           </div>
-          <p className="mt-0.5 text-base text-lead/70">
-            Visible to everyone in the room:
-          </p>
+          
+          <label htmlFor="device-name-input" className="block font-heading text-xs uppercase tracking-wider text-chrome/80">
+            &gt; ENTER_CALLSIGN:
+          </label>
           <input
             id="device-name-input"
             type="text"
             maxLength={30}
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
-            placeholder="e.g. My Phone"
-            style={{ borderRadius: '185px 25px 195px 20px / 20px 195px 25px 185px' }}
-            className="mt-3 w-full border-[2.5px] border-lead bg-paper px-4 py-2.5 text-lg font-medium text-lead placeholder:text-lead/40 focus:border-ballpointBlue focus:outline-none focus:ring-2 focus:ring-ballpointBlue/20"
+            placeholder="e.g. CYBER_DECK_01"
+            className="mt-2 w-full border-b-2 border-neonMagenta bg-black/60 px-3 py-2 font-mono text-lg text-neonCyan placeholder:text-neonMagenta/40 focus:border-neonCyan focus:shadow-[0_0_15px_#00FFFF] focus:outline-none"
           />
         </section>
 
-        {/* Create Room Box */}
-        <section
-          style={{ borderRadius: '195px 25px 225px 20px / 20px 225px 25px 195px' }}
-          className="border-[3px] border-lead bg-white p-5 shadow-sketch -rotate-[0.5deg]"
-        >
-          <h2 className="font-heading text-lg font-bold text-lead">Create a Room</h2>
-          <p className="text-sm text-lead/70">Choose how long your room link lasts:</p>
-          
-          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Room lifetime">
+        {/* Create / Initialize Matrix Section */}
+        <section className="border-2 border-retroBorder border-t-2 border-t-neonCyan bg-cardBg/90 backdrop-blur-md p-5 shadow-panelGlow">
+          <div className="flex items-center justify-between border-b border-retroBorder pb-2.5 mb-4">
+            <span className="font-mono text-xs text-neonCyan font-bold tracking-widest uppercase">
+              // INITIALIZE_SESSION_POD
+            </span>
+            <span className="font-mono text-xs text-chrome/40">[SECURE_DTLS]</span>
+          </div>
+
+          <p className="text-xs uppercase font-mono tracking-wider text-chrome/70 mb-3">
+            &gt; CODE_EXPIRY_THRESHOLD:
+          </p>
+          <div className="flex flex-wrap gap-2.5" role="group" aria-label="Room lifetime">
             {TTL_CHOICES.map((t) => (
               <button
                 key={t.value}
                 type="button"
                 onClick={() => setTtlSec(t.value)}
                 aria-pressed={ttlSec === t.value}
-                style={{ borderRadius: '255px 25px 225px 25px / 25px 225px 25px 255px' }}
-                className={`border-2 border-lead px-3 py-1 text-base font-semibold transition-all ${
+                className={`font-mono text-xs uppercase tracking-wider px-3 py-1.5 border transition-all ${
                   ttlSec === t.value
-                    ? 'bg-markerRed text-white shadow-sketch-sm -translate-y-0.5'
-                    : 'bg-paper text-lead hover:bg-mutedPaper'
+                    ? 'border-neonCyan bg-neonCyan text-black font-bold shadow-[0_0_15px_#00FFFF]'
+                    : 'border-retroBorder bg-black/40 text-chrome/60 hover:border-neonCyan hover:text-neonCyan'
                 }`}
               >
-                {t.label}
+                [{t.label}]
               </button>
             ))}
           </div>
 
-          <label className="mt-3 flex items-center gap-2 text-base text-lead select-none cursor-pointer">
+          <label className="mt-4 flex items-center gap-2 text-xs uppercase font-mono text-chrome/80 select-none cursor-pointer">
             <input
               type="checkbox"
               checked={requireApproval}
               onChange={(e) => setRequireApproval(e.target.checked)}
-              className="h-4 w-4 rounded border-2 border-lead text-markerRed focus:ring-markerRed"
+              className="h-4 w-4 rounded-none border border-neonMagenta bg-black text-neonMagenta focus:ring-0"
             />
-            Require me to approve each joining device
+            REQUIRE_HOST_CLEARANCE_APPROVAL
           </label>
 
           <button
             type="button"
+            aria-label="Create room"
             onClick={() => void handleCreate()}
             disabled={creating}
-            style={{ borderRadius: '255px 25px 225px 25px / 25px 225px 25px 255px' }}
-            className="mt-4 w-full border-[3px] border-lead bg-white py-3 text-xl font-heading font-bold text-lead shadow-sketch hover:bg-markerRed hover:text-white hover:shadow-sketch-sm hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] disabled:opacity-50 transition-all cursor-pointer"
+            className="mt-6 w-full -skew-x-12 border-2 border-neonCyan bg-transparent py-3.5 font-heading text-lg font-bold uppercase tracking-widest text-neonCyan hover:skew-x-0 hover:bg-neonCyan hover:text-black hover:shadow-[0_0_25px_#00FFFF] active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
           >
-            {creating ? 'Sketching room…' : 'Create Room 🚀'}
+            <span className="inline-block skew-x-12 hover:skew-x-0">
+              {creating ? '&gt; INITIALIZING_PORTAL…' : 'CREATE ROOM &gt;&gt;'}
+            </span>
           </button>
         </section>
 
-        {/* Join Room Box */}
-        <section
-          style={{ borderRadius: '225px 20px 205px 25px / 25px 205px 20px 225px' }}
-          className="border-[3px] border-lead bg-white p-5 shadow-sketch rotate-[0.3deg]"
-        >
-          <h2 className="font-heading text-lg font-bold text-lead">Join a Room</h2>
-          <div className="mt-3 flex gap-2">
+        {/* Join Matrix Node Section */}
+        <section className="border-2 border-retroBorder border-t-2 border-t-sunsetOrange bg-cardBg/90 backdrop-blur-md p-5 shadow-panelGlow">
+          <div className="flex items-center justify-between border-b border-retroBorder pb-2.5 mb-4">
+            <span className="font-mono text-xs text-sunsetOrange font-bold tracking-widest uppercase">
+              // CONNECT_TO_PORTAL
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
             <label className="sr-only" htmlFor="join-code">Room code</label>
             <input
               id="join-code"
               type="text"
               maxLength={6}
-              placeholder="CODE"
+              placeholder="ENTER 6-CHAR CODE"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-              style={{ borderRadius: '185px 25px 195px 20px / 20px 195px 25px 185px' }}
-              className="w-full border-[2.5px] border-lead bg-paper px-4 py-2 text-center font-mono text-xl tracking-widest text-lead focus:border-ballpointBlue focus:outline-none"
+              className="flex-1 border-b-2 border-sunsetOrange bg-black/60 px-4 py-2 text-center font-mono text-xl tracking-[0.2em] text-sunsetOrange placeholder:text-sunsetOrange/40 focus:border-neonCyan focus:shadow-[0_0_15px_#00FFFF] focus:outline-none"
             />
             <button
               type="button"
+              aria-label="Join"
               onClick={handleJoin}
               disabled={code.length !== 6}
-              style={{ borderRadius: '255px 25px 225px 25px / 25px 225px 25px 255px' }}
-              className="border-[3px] border-lead bg-lead px-6 py-2 font-heading text-lg font-bold text-white shadow-sketch hover:bg-ballpointBlue disabled:opacity-40 transition-all cursor-pointer"
+              className="-skew-x-12 border-2 border-neonMagenta bg-neonMagenta px-8 py-2.5 font-heading text-sm font-bold uppercase tracking-widest text-white hover:skew-x-0 hover:bg-transparent hover:text-neonMagenta hover:shadow-[0_0_20px_#FF00FF] disabled:opacity-40 transition-all cursor-pointer"
             >
-              Join
+              <span className="inline-block skew-x-12 hover:skew-x-0">
+                JOIN
+              </span>
             </button>
           </div>
         </section>
       </div>
 
-      <p className="max-w-md text-center text-base text-lead/60 italic">
-        🔒 Files flow directly between devices over encrypted WebRTC. The server never touches or stores your files.
+      <p className="max-w-md text-center font-mono text-xs text-chrome/50 uppercase tracking-widest">
+        // ENCRYPTED DIRECT STREAMING · ZERO SERVER LOGS //
       </p>
     </main>
   );
