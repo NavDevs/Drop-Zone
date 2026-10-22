@@ -220,7 +220,7 @@ export function Room() {
 
       <section aria-label="Devices in this room">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+          <h2 className="font-heading text-lg font-bold uppercase tracking-wide text-lead">
             Devices ({Object.keys(peers).length + 1})
           </h2>
 
@@ -237,10 +237,11 @@ export function Room() {
             data-testid="send-to-all-button"
             onClick={() => groupFileInputRef.current?.click()}
             disabled={Object.keys(peers).length === 0}
-            className="flex items-center gap-1.5 rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-primary-700 disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            style={{ borderRadius: '255px 25px 225px 25px / 25px 225px 25px 255px' }}
+            className="flex items-center gap-2 border-[2.5px] border-lead bg-markerRed px-5 py-2.5 font-heading text-lg font-bold text-white shadow-sketch hover:shadow-sketch-sm hover:translate-x-0.5 hover:translate-y-0.5 disabled:opacity-40 transition-all cursor-pointer"
           >
-            <span>Send to Everyone</span>
-            <span className="rounded-full bg-primary-700 px-1.5 py-0.5 text-xs text-primary-100">
+            <span>Send to Everyone 📁</span>
+            <span className="rounded-full border border-white bg-lead px-2 py-0.2 text-sm font-bold text-white">
               {Object.keys(peers).length}
             </span>
           </button>

@@ -39,21 +39,23 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
   return (
     <li
       data-testid={`transfer-row-${transfer.id}`}
-      className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900 shadow-sm"
+      style={{ borderRadius: '185px 25px 195px 20px / 20px 195px 25px 185px' }}
+      className="flex flex-col gap-2 border-[2.5px] border-lead bg-white p-4 shadow-sketch-sm -rotate-[0.3deg]"
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <span
-            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+            style={{ borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px' }}
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center border-2 border-lead bg-paper text-lead font-bold font-mono shadow-sketch-sm"
             aria-hidden="true"
           >
             {isSend ? '↑' : '↓'}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100" title={transfer.name}>
+            <p className="truncate font-heading text-base font-bold text-lead" title={transfer.name}>
               {transfer.name}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-lead/70">
               {formatBytes(transfer.transferred)} of {formatBytes(transfer.size)}
             </p>
           </div>
@@ -86,7 +88,7 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
       </div>
 
       {/* Progress bar */}
-      <div className="relative h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+      <div className="relative h-3 w-full overflow-hidden rounded-full border-2 border-lead bg-paper">
         <div
           role="progressbar"
           aria-valuenow={percent}
@@ -95,15 +97,15 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
           style={{ width: `${percent}%` }}
           className={`h-full transition-all duration-200 ${
             transfer.status === 'error'
-              ? 'bg-red-500'
+              ? 'bg-markerRed'
               : transfer.status === 'done'
-              ? 'bg-green-500'
-              : 'bg-primary-600'
+              ? 'bg-emerald-500'
+              : 'bg-ballpointBlue'
           }`}
         />
       </div>
 
-      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+      <div className="flex items-center justify-between text-sm font-medium text-lead/70">
         <span>{percent}%</span>
         {isActive && (
           <div className="flex gap-3">
@@ -111,7 +113,7 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
             <span>ETA: {formatEta(transfer.eta ?? null)}</span>
           </div>
         )}
-        {transfer.error && <span className="text-red-500 truncate">{transfer.error}</span>}
+        {transfer.error && <span className="text-markerRed truncate font-bold">{transfer.error}</span>}
       </div>
     </li>
   );

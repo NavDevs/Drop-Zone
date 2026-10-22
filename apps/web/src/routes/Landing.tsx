@@ -48,24 +48,40 @@ export function Landing() {
   };
 
   return (
-    <main className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center gap-8 p-4">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold tracking-tight">DropZone</h1>
-        <p className="mt-3 text-lg text-gray-500 dark:text-gray-400">
-          Peer-to-peer file transfer. No cloud. No accounts.
+    <main className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-6 p-4 md:p-8">
+      {/* Playful Header */}
+      <div className="text-center relative">
+        <span className="absolute -top-3 -right-4 -rotate-6 rounded bg-postit px-2 py-0.5 text-xs font-bold border-2 border-lead shadow-sketch-sm hidden sm:inline-block">
+          P2P · No Cloud!
+        </span>
+        <h1 className="font-heading text-5xl md:text-6xl font-bold tracking-tight text-lead -rotate-1">
+          DropZone
+        </h1>
+        <p className="mt-2 text-xl md:text-2xl text-lead/80">
+          Direct device-to-device file transfer. Hand-delivered over WebRTC.
         </p>
       </div>
 
-      {error && <div className="w-full max-w-md"><ErrorBanner message={error.message} /></div>}
+      {error && (
+        <div className="w-full max-w-md">
+          <ErrorBanner message={error.message} />
+        </div>
+      )}
 
-      <div className="flex w-full max-w-md flex-col gap-4">
+      <div className="flex w-full max-w-md flex-col gap-5">
         {/* Your Name Box */}
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900 shadow-sm">
-          <label htmlFor="device-name-input" className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Your Name / Device Name
-          </label>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            This name will be shown to other members in the room.
+        <section
+          style={{ borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px' }}
+          className="border-[3px] border-lead bg-white p-5 shadow-sketch rotate-[0.5deg]"
+        >
+          <div className="flex items-center gap-2">
+            <span className="h-3 w-3 rounded-full bg-markerRed border border-lead"></span>
+            <label htmlFor="device-name-input" className="font-heading text-lg font-bold text-lead">
+              Your Device Name
+            </label>
+          </div>
+          <p className="mt-0.5 text-base text-lead/70">
+            Visible to everyone in the room:
           </p>
           <input
             id="device-name-input"
@@ -73,13 +89,20 @@ export function Landing() {
             maxLength={30}
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
-            placeholder="e.g. Naveen's Phone"
-            className="mt-3 w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            placeholder="e.g. My Phone"
+            style={{ borderRadius: '185px 25px 195px 20px / 20px 195px 25px 185px' }}
+            className="mt-3 w-full border-[2.5px] border-lead bg-paper px-4 py-2.5 text-lg font-medium text-lead placeholder:text-lead/40 focus:border-ballpointBlue focus:outline-none focus:ring-2 focus:ring-ballpointBlue/20"
           />
         </section>
 
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Create a room</h2>
+        {/* Create Room Box */}
+        <section
+          style={{ borderRadius: '195px 25px 225px 20px / 20px 225px 25px 195px' }}
+          className="border-[3px] border-lead bg-white p-5 shadow-sketch -rotate-[0.5deg]"
+        >
+          <h2 className="font-heading text-lg font-bold text-lead">Create a Room</h2>
+          <p className="text-sm text-lead/70">Choose how long your room link lasts:</p>
+          
           <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Room lifetime">
             {TTL_CHOICES.map((t) => (
               <button
@@ -87,54 +110,64 @@ export function Landing() {
                 type="button"
                 onClick={() => setTtlSec(t.value)}
                 aria-pressed={ttlSec === t.value}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                style={{ borderRadius: '255px 25px 225px 25px / 25px 225px 25px 255px' }}
+                className={`border-2 border-lead px-3 py-1 text-base font-semibold transition-all ${
                   ttlSec === t.value
-                    ? 'bg-primary-600 text-white'
-                    : 'border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800'
+                    ? 'bg-markerRed text-white shadow-sketch-sm -translate-y-0.5'
+                    : 'bg-paper text-lead hover:bg-mutedPaper'
                 }`}
               >
                 {t.label}
               </button>
             ))}
           </div>
-          <label className="mt-3 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+
+          <label className="mt-3 flex items-center gap-2 text-base text-lead select-none cursor-pointer">
             <input
               type="checkbox"
               checked={requireApproval}
               onChange={(e) => setRequireApproval(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              className="h-4 w-4 rounded border-2 border-lead text-markerRed focus:ring-markerRed"
             />
-            Require me to approve each device
+            Require me to approve each joining device
           </label>
+
           <button
             type="button"
             onClick={() => void handleCreate()}
             disabled={creating}
-            className="mt-4 w-full rounded-xl bg-primary-600 px-6 py-3 text-base font-semibold text-white shadow transition hover:bg-primary-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            style={{ borderRadius: '255px 25px 225px 25px / 25px 225px 25px 255px' }}
+            className="mt-4 w-full border-[3px] border-lead bg-white py-3 text-xl font-heading font-bold text-lead shadow-sketch hover:bg-markerRed hover:text-white hover:shadow-sketch-sm hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] disabled:opacity-50 transition-all cursor-pointer"
           >
-            {creating ? 'Creating…' : 'Create Room'}
+            {creating ? 'Sketching room…' : 'Create Room 🚀'}
           </button>
         </section>
 
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Join a room</h2>
+        {/* Join Room Box */}
+        <section
+          style={{ borderRadius: '225px 20px 205px 25px / 25px 205px 20px 225px' }}
+          className="border-[3px] border-lead bg-white p-5 shadow-sketch rotate-[0.3deg]"
+        >
+          <h2 className="font-heading text-lg font-bold text-lead">Join a Room</h2>
           <div className="mt-3 flex gap-2">
             <label className="sr-only" htmlFor="join-code">Room code</label>
             <input
               id="join-code"
               type="text"
               maxLength={6}
-              placeholder="Enter code"
+              placeholder="CODE"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-center font-mono text-lg tracking-widest dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              style={{ borderRadius: '185px 25px 195px 20px / 20px 195px 25px 185px' }}
+              className="w-full border-[2.5px] border-lead bg-paper px-4 py-2 text-center font-mono text-xl tracking-widest text-lead focus:border-ballpointBlue focus:outline-none"
             />
             <button
               type="button"
               onClick={handleJoin}
               disabled={code.length !== 6}
-              className="rounded-xl bg-gray-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-gray-700 disabled:opacity-40 dark:bg-gray-200 dark:text-gray-900 dark:hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              style={{ borderRadius: '255px 25px 225px 25px / 25px 225px 25px 255px' }}
+              className="border-[3px] border-lead bg-lead px-6 py-2 font-heading text-lg font-bold text-white shadow-sketch hover:bg-ballpointBlue disabled:opacity-40 transition-all cursor-pointer"
             >
               Join
             </button>
@@ -142,9 +175,8 @@ export function Landing() {
         </section>
       </div>
 
-      <p className="max-w-md text-center text-sm text-gray-400 dark:text-gray-500">
-        Files travel directly between devices over an encrypted connection.
-        The server only helps devices find each other — it never sees your files.
+      <p className="max-w-md text-center text-base text-lead/60 italic">
+        🔒 Files flow directly between devices over encrypted WebRTC. The server never touches or stores your files.
       </p>
     </main>
   );
