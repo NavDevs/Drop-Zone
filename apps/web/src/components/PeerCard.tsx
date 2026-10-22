@@ -73,6 +73,9 @@ export function PeerCard({
 
   return (
     <li
+      onClick={() => {
+        if (!isSelf) fileInputRef.current?.click();
+      }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -81,7 +84,7 @@ export function PeerCard({
           ? 'border-neonCyan bg-neonCyan/20 shadow-[0_0_20px_#00FFFF] scale-[1.02]'
           : isSelf
           ? 'border-retroBorder border-t-2 border-t-neonMagenta bg-cardBg/90 shadow-panelGlow'
-          : 'border-retroBorder border-t-2 border-t-neonCyan bg-cardBg/80 hover:border-neonCyan hover:shadow-[0_0_15px_rgba(0,255,255,0.3)]'
+          : 'border-retroBorder border-t-2 border-t-neonCyan bg-cardBg/80 hover:border-neonCyan hover:shadow-[0_0_15px_rgba(0,255,255,0.3)] cursor-pointer'
       }`}
       data-testid="peer-card"
       data-device-id={device.deviceId}
@@ -97,7 +100,7 @@ export function PeerCard({
         />
       )}
 
-      <span className="flex h-10 w-10 items-center justify-center border border-neonCyan/50 bg-black/60 text-neonCyan -skew-x-6">
+      <span className="flex h-10 w-10 items-center justify-center border border-neonCyan/50 bg-black/60 text-neonCyan -skew-x-6 flex-shrink-0">
         <DeviceIcon type={device.type} />
       </span>
 
@@ -111,6 +114,19 @@ export function PeerCard({
           [{label}]
         </span>
       </span>
+
+      {!isSelf && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            fileInputRef.current?.click();
+          }}
+          className="-skew-x-6 border border-neonCyan/40 bg-black/60 px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-neonCyan hover-vapor-cyan transition cursor-pointer flex-shrink-0"
+        >
+          <span className="inline-block skew-x-6">SEND</span>
+        </button>
+      )}
     </li>
   );
 }

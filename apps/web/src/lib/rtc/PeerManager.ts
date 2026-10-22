@@ -30,6 +30,7 @@ export class PeerManager {
   private controlListeners = new Set<(deviceId: string, message: ControlMessage) => void>();
   private chunkListeners = new Set<(deviceId: string, transferId: number, chunkIndex: number, payload: Uint8Array) => void>();
   private sessionRemovedListeners = new Set<(deviceId: string) => void>();
+  private readyListeners = new Set<(deviceId: string) => void>();
 
   /** Wire the outbound signal sender; call once when a room is joined. */
   start(sendSignal: (to: string, kind: 'description' | 'candidate', data: unknown) => void): void {
@@ -111,6 +112,12 @@ export class PeerManager {
     return () => this.sessionRemovedListeners.delete(listener);
   }
 
+  /** Fires when a peer's control channel opens and is ready for data exchange. */
+  subscribeReady(listener: (deviceId: string) => void): () => void {
+    this.readyListeners.add(listener);
+    return () => this.readyListeners.delete(listener);
+  }
+
   /** Transfer-engine transport for a peer; null if no session exists. */
   getTransport(deviceId: string): TransferTransport | null {
     const session = this.sessions.get(deviceId);
@@ -168,6 +175,9 @@ export class PeerManager {
       iceServers,
       forceRelay,
       sendSignal: (kind, data) => this.sendSignal?.(remoteDeviceId, kind, data),
+      onReady: () => {
+        for (const listener of this.readyListeners) listener(remoteDeviceId);
+      },
       onStateChange: (state: PeerState) => {
         usePeersStore.getState().setPresence(remoteDeviceId, mapStateToPresence(state));
       },

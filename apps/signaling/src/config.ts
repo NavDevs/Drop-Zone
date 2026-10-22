@@ -6,7 +6,7 @@ config();
 const envSchema = z.object({
   PORT: z.coerce.number().default(3001),
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
-  STUN_URLS: z.string().default('stun:stun.l.google.com:19302'),
+  STUN_URLS: z.string().default('stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302,stun:stun2.l.google.com:19302,stun:stun.cloudflare.com:3478'),
   TURN_URLS: z.string().default(''),
   TURN_SECRET: z.string().default(''),
   TURN_TTL_SECONDS: z.coerce.number().default(3600),

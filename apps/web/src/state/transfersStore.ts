@@ -6,6 +6,8 @@ export type TransferStatus = 'queued' | 'offering' | 'active' | 'done' | 'error'
 export interface TransferRecord {
   id: number;
   peerId: string;
+  senderName?: string;
+  roomCode?: string;
   name: string;
   size: number;
   mime: string;

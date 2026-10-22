@@ -53,6 +53,8 @@ interface PeerSessionOptions {
   maxMessageSize?: number;
   sendSignal: (kind: 'description' | 'candidate', data: unknown) => void;
   onStateChange: (state: PeerState) => void;
+  /** Fires when the control channel opens and is ready for data exchange. */
+  onReady?: () => void;
   /** Hello from the remote peer (name, caps). */
   onHello?: (hello: Omit<HelloMessage, 't' | 'v'>) => void;
   /** App-level text over the control channel (FR-31 round trip). */
@@ -84,6 +86,7 @@ export class PeerSession {
   private remoteMaxMessageSize: number | null = null;
   private makingOffer = false;
   private ignoreOffer = false;
+  private pendingCandidates: Array<RTCIceCandidateInit | null> = [];
   private state: PeerState = 'connecting';
   private reconnectAttempts = 0;
   private reconnectTimer: number | null = null;
@@ -155,7 +158,10 @@ export class PeerSession {
     // Negotiated channels: created by BOTH sides, so no ondatachannel race.
     this.control = pc.createDataChannel('control', { negotiated: true, id: CONTROL_CHANNEL_ID, ordered: true });
     this.control.onmessage = (event): void => this.handleControlMessage(event.data);
-    this.control.onopen = (): void => this.sendHello();
+    this.control.onopen = (): void => {
+      this.sendHello();
+      this.opts.onReady?.();
+    };
     this.dataChannels = [];
     for (let i = 0; i < (this.opts.channels ?? 1); i++) {
       const channel = pc.createDataChannel(`data-${i}`, {
@@ -228,6 +234,19 @@ export class PeerSession {
         }
       }
       this.checkSas();
+
+      // Drain candidates queued while awaiting remote description
+      if (this.pendingCandidates.length > 0) {
+        const queued = [...this.pendingCandidates];
+        this.pendingCandidates = [];
+        for (const cand of queued) {
+          try {
+            await pc.addIceCandidate(cand);
+          } catch {
+            // Ignore stale queued candidate errors
+          }
+        }
+      }
     } catch (err) {
       this.opts.onError?.(err instanceof Error ? err : new Error(String(err)));
     }
@@ -237,11 +256,14 @@ export class PeerSession {
   async receiveCandidate(data: { candidate?: unknown }): Promise<void> {
     const pc = this.pc;
     if (!pc || this.destroyed) return;
+    const candidate = (data.candidate ?? null) as RTCIceCandidateInit | null;
     try {
       // A null candidate signals end-of-candidates; ignoreOffer drops stale ones.
-      await pc.addIceCandidate((data.candidate ?? null) as RTCIceCandidateInit | null);
+      await pc.addIceCandidate(candidate);
     } catch (err) {
-      if (!this.ignoreOffer) {
+      if (!pc.remoteDescription) {
+        this.pendingCandidates.push(candidate);
+      } else if (!this.ignoreOffer) {
         this.opts.onError?.(err instanceof Error ? err : new Error(String(err)));
       }
     }
@@ -374,6 +396,7 @@ export class PeerSession {
     }
     for (const resolve of this.lowWaiters.values()) for (const fn of resolve) fn();
     this.lowWaiters.clear();
+    this.pendingCandidates = [];
     this.control = null;
     this.dataChannels = [];
     this.pc = null;

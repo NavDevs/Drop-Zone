@@ -12,6 +12,7 @@ import { OpfsWriter } from './OpfsWriter.js';
 import { selectStorageBackend, checkStorageEstimate } from './capability.js';
 import { TransferSender } from './TransferSender.js';
 import { TransferReceiver } from './TransferReceiver.js';
+import { saveRoomHistoryRecord } from './resumeStore.js';
 
 export interface IncomingOffer {
   transferId: number;
@@ -46,15 +47,22 @@ export class TransferHub {
   private readonly incomingOffers = new Map<number, IncomingOffer>();
   private readonly offerListeners = new Set<(offers: IncomingOffer[]) => void>();
   private readonly downloadUrls = new Map<number, string>();
+  private readonly sharedFiles = new Map<string, File>();
+  private currentRoomCode: string | null = null;
 
   private unsubControl: (() => void) | null = null;
   private unsubChunk: (() => void) | null = null;
   private unsubRemoved: (() => void) | null = null;
+  private unsubReady: (() => void) | null = null;
 
   constructor(peerManager: PeerManager = getPeerManager()) {
     this.peerManager = peerManager;
     this.bindPeerManager();
     this.exposeTestHooks();
+  }
+
+  setRoomCode(code: string | null): void {
+    this.currentRoomCode = code;
   }
 
   private bindPeerManager(): void {
@@ -71,6 +79,10 @@ export class TransferHub {
 
     this.unsubRemoved = this.peerManager.subscribeSessionRemoved((deviceId) => {
       this.handleSessionRemoved(deviceId);
+    });
+
+    this.unsubReady = this.peerManager.subscribeReady((deviceId) => {
+      this.handlePeerReady(deviceId);
     });
   }
 
@@ -95,6 +107,7 @@ export class TransferHub {
     this.unsubControl?.();
     this.unsubChunk?.();
     this.unsubRemoved?.();
+    this.unsubReady?.();
 
     for (const sender of this.senders.values()) sender.cancel('Hub destroyed');
     for (const receiver of this.receivers.values()) void receiver.cancel('Hub destroyed');
@@ -104,6 +117,7 @@ export class TransferHub {
     this.receivers.clear();
     this.incomingOffers.clear();
     this.downloadUrls.clear();
+    this.sharedFiles.clear();
     this.offerListeners.clear();
   }
 
@@ -130,12 +144,14 @@ export class TransferHub {
     const transferIds: number[] = [];
 
     for (const file of files) {
+      this.sharedFiles.set(`${file.name}-${file.size}`, file);
       const transferId = this.generateTransferId();
       transferIds.push(transferId);
 
-      useTransfersStore.getState().add({
+      const record: TransferRecord = {
         id: transferId,
         peerId: remoteDeviceId,
+        roomCode: this.currentRoomCode ?? '',
         name: file.name,
         size: file.size,
         mime: file.type || 'application/octet-stream',
@@ -145,7 +161,8 @@ export class TransferHub {
         transferred: 0,
         speed: 0,
         startedAt: Date.now(),
-      });
+      };
+      useTransfersStore.getState().add(record);
 
       const sender = new TransferSender(transferId, file, transport, {
         onProgress: (transferred, _total, speed, progress, eta) => {
@@ -165,6 +182,8 @@ export class TransferHub {
             eta: 0,
             verified: true,
           });
+          const rec = useTransfersStore.getState().transfers[transferId];
+          if (rec) void saveRoomHistoryRecord({ ...rec, roomCode: this.currentRoomCode ?? '' });
           this.senders.delete(transferId);
         },
         onError: (err) => {
@@ -269,6 +288,8 @@ export class TransferHub {
           downloadUrl,
           backend: backendKind,
         });
+        const rec = useTransfersStore.getState().transfers[transferId];
+        if (rec) void saveRoomHistoryRecord({ ...rec, roomCode: this.currentRoomCode ?? '' });
         this.receivers.delete(transferId);
       },
       onError: (err) => {
@@ -360,6 +381,8 @@ export class TransferHub {
       useTransfersStore.getState().add({
         id: message.transferId,
         peerId: fromDeviceId,
+        senderName,
+        roomCode: this.currentRoomCode ?? '',
         name: sanitizedName,
         size: message.size,
         mime: message.mime,
@@ -386,6 +409,42 @@ export class TransferHub {
       return;
     }
 
+    if (message.t === 'text') {
+      try {
+        const data = JSON.parse(message.text) as {
+          type?: string;
+          roomCode?: string;
+          records?: TransferRecord[];
+          name?: string;
+          size?: number;
+        };
+        if (data.type === 'dz:history-sync' && Array.isArray(data.records)) {
+          const store = useTransfersStore.getState();
+          for (const item of data.records) {
+            if (!store.transfers[item.id]) {
+              const fullRecord: TransferRecord = {
+                ...item,
+                roomCode: this.currentRoomCode ?? item.roomCode ?? '',
+              };
+              store.add(fullRecord);
+              void saveRoomHistoryRecord(fullRecord);
+            }
+          }
+          return;
+        }
+        if (data.type === 'dz:request-file' && data.name && typeof data.size === 'number') {
+          const key = `${data.name}-${data.size}`;
+          const file = this.sharedFiles.get(key);
+          if (file) {
+            void this.sendFiles(fromDeviceId, [file]);
+          }
+          return;
+        }
+      } catch {
+        // Not a JSON DropZone sync payload; pass through
+      }
+    }
+
     if ('transferId' in message && typeof message.transferId === 'number') {
       const sender = this.senders.get(message.transferId);
       if (sender) {
@@ -407,25 +466,111 @@ export class TransferHub {
         this.incomingOffers.delete(id);
         useTransfersStore.getState().update(id, {
           status: 'error',
-          error: 'Peer disconnected',
+          error: 'Peer disconnected before offer was accepted',
         });
       }
     }
     this.notifyOfferListeners();
 
+    // Do NOT abruptly abort active transfers; pause and mark reconnecting
     for (const [id, sender] of this.senders.entries()) {
       const record = useTransfersStore.getState().transfers[id];
-      if (record?.peerId === deviceId) {
-        sender.cancel('Peer disconnected');
+      if (record?.peerId === deviceId && sender.getState() === 'active') {
+        sender.pause();
+        useTransfersStore.getState().update(id, {
+          error: 'Connection interrupted; waiting to reconnect...',
+        });
       }
     }
 
     for (const [id, receiver] of this.receivers.entries()) {
       const record = useTransfersStore.getState().transfers[id];
-      if (record?.peerId === deviceId) {
-        void receiver.cancel('Peer disconnected');
+      if (record?.peerId === deviceId && receiver.getState() === 'active') {
+        useTransfersStore.getState().update(id, {
+          error: 'Connection interrupted; waiting to reconnect...',
+        });
       }
     }
+  }
+
+  private handlePeerReady(deviceId: string): void {
+    // 1. Sync room transfer history so new/reconnected peer sees all room files
+    this.syncRoomHistoryToPeer(deviceId);
+
+    // 2. Automatically resume any paused or interrupted transfers
+    for (const [id, receiver] of this.receivers.entries()) {
+      const record = useTransfersStore.getState().transfers[id];
+      if (record?.peerId === deviceId) {
+        useTransfersStore.getState().update(id, { error: undefined });
+        receiver.sendResume();
+      }
+    }
+
+    for (const [id, sender] of this.senders.entries()) {
+      const record = useTransfersStore.getState().transfers[id];
+      if (record?.peerId === deviceId && sender.getState() === 'paused') {
+        useTransfersStore.getState().update(id, { error: undefined });
+        sender.resume();
+      }
+    }
+  }
+
+  /**
+   * Send the room's completed transfers to a peer over the control channel
+   * so every peer (new or existing) has the full room transfer history.
+   */
+  syncRoomHistoryToPeer(peerDeviceId: string): void {
+    if (!this.currentRoomCode) return;
+    const transport = this.peerManager.getTransport(peerDeviceId);
+    if (!transport) return;
+
+    const allTransfers = Object.values(useTransfersStore.getState().transfers);
+    const roomRecords = allTransfers.filter(
+      (t) => (t.status === 'done' || t.status === 'active') && (!t.roomCode || t.roomCode === this.currentRoomCode),
+    );
+    if (roomRecords.length === 0) return;
+
+    transport.sendControl({
+      t: 'text',
+      id: crypto.randomUUID(),
+      text: JSON.stringify({
+        type: 'dz:history-sync',
+        roomCode: this.currentRoomCode,
+        records: roomRecords.map((r) => ({
+          id: r.id,
+          peerId: r.peerId,
+          senderName: r.senderName,
+          roomCode: this.currentRoomCode,
+          name: r.name,
+          size: r.size,
+          mime: r.mime,
+          direction: 'receive',
+          status: r.status,
+          progress: r.progress,
+          transferred: r.transferred,
+          speed: 0,
+          verified: r.verified,
+          startedAt: r.startedAt,
+        })),
+      }),
+    });
+  }
+
+  /**
+   * Request a file that was previously shared in the room from the peer who holds it.
+   */
+  requestFile(peerDeviceId: string, name: string, size: number): void {
+    const transport = this.peerManager.getTransport(peerDeviceId);
+    if (!transport) return;
+    transport.sendControl({
+      t: 'text',
+      id: crypto.randomUUID(),
+      text: JSON.stringify({
+        type: 'dz:request-file',
+        name,
+        size,
+      }),
+    });
   }
 
   private notifyOfferListeners(): void {

@@ -16,6 +16,8 @@ import { IncomingDialog } from '../components/IncomingDialog.js';
 import { TransferList } from '../components/TransferList.js';
 import { DiagnosticsDrawer } from '../components/DiagnosticsDrawer.js';
 import type { PeerLinkStats } from '../lib/rtc/PeerSession.js';
+import { useTransfersStore } from '../state/transfersStore.js';
+import { getRoomHistory } from '../lib/transfer/resumeStore.js';
 
 export function Room() {
   const { code: urlCode } = useParams<{ code: string }>();
@@ -76,6 +78,36 @@ export function Room() {
       setIncomingOffers(offers);
     });
   }, [transferHub]);
+
+  // Bind current roomCode to TransferHub and load stored room transfer history from IndexedDB
+  useEffect(() => {
+    if (!urlCode) return;
+    transferHub.setRoomCode(urlCode);
+    void getRoomHistory(urlCode).then((records) => {
+      if (records.length > 0) {
+        const store = useTransfersStore.getState();
+        for (const record of records) {
+          if (!store.transfers[record.id]) {
+            store.add(record);
+          }
+        }
+      }
+    });
+    return () => {
+      transferHub.setRoomCode(null);
+    };
+  }, [urlCode, transferHub]);
+
+  // Auto-dismiss member join/leave notifications after 4.5 seconds
+  useEffect(() => {
+    if (notifications.length === 0) return;
+    const latest = notifications[notifications.length - 1];
+    if (!latest) return;
+    const timer = setTimeout(() => {
+      dismissNotification(latest.id);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [notifications, dismissNotification]);
 
   // Tear down all RTCPeerConnections when leaving the room route.
   useEffect(() => {

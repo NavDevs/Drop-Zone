@@ -1,5 +1,6 @@
 import { openDB, type IDBPDatabase } from 'idb';
 import { RESUME_RECORD_TTL_MS } from '@dropzone/protocol';
+import type { TransferRecord } from '../../state/transfersStore.js';
 
 export type StorageBackendKind = 'fs-access' | 'opfs' | 'memory';
 
@@ -19,8 +20,9 @@ export interface ResumeRecord {
 }
 
 const DB_NAME = 'dropzone-transfers';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'resumes';
+const HISTORY_STORE_NAME = 'room-history';
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
@@ -36,6 +38,11 @@ function getDb(): Promise<IDBPDatabase> {
           store.createIndex('byPeer', 'peerDeviceId', { unique: false });
           store.createIndex('byFile', ['name', 'size', 'lastModified'], { unique: false });
           store.createIndex('byUpdated', 'updatedAt', { unique: false });
+        }
+        if (!db.objectStoreNames.contains(HISTORY_STORE_NAME)) {
+          const historyStore = db.createObjectStore(HISTORY_STORE_NAME, { keyPath: 'id' });
+          historyStore.createIndex('byRoom', 'roomCode', { unique: false });
+          historyStore.createIndex('byStarted', 'startedAt', { unique: false });
         }
       },
     });
@@ -134,5 +141,54 @@ export async function purgeExpiredResumeRecords(ttlMs: number = RESUME_RECORD_TT
   } catch (err) {
     console.warn('Failed to purge expired resume records:', err);
     return 0;
+  }
+}
+
+/**
+ * Persist a transfer history record for a room so it stays stored and visible to all users.
+ */
+export async function saveRoomHistoryRecord(record: TransferRecord): Promise<void> {
+  try {
+    const db = await getDb();
+    // Do not store live blob URLs in IndexedDB (not serializable or valid across reloads)
+    const toStore = { ...record };
+    delete toStore.downloadUrl;
+    await db.put(HISTORY_STORE_NAME, toStore);
+  } catch (err) {
+    console.warn('Failed to save room history record to IndexedDB:', err);
+  }
+}
+
+/**
+ * Retrieve all persisted transfer records for a given room.
+ */
+export async function getRoomHistory(roomCode: string): Promise<TransferRecord[]> {
+  try {
+    const db = await getDb();
+    const index = db.transaction(HISTORY_STORE_NAME).store.index('byRoom');
+    const records = await index.getAll(roomCode);
+    return records.sort((a, b) => a.startedAt - b.startedAt);
+  } catch (err) {
+    console.warn(`Failed to get room history for ${roomCode}:`, err);
+    return [];
+  }
+}
+
+/**
+ * Clear persisted transfer history for a closed room.
+ */
+export async function clearRoomHistory(roomCode: string): Promise<void> {
+  try {
+    const db = await getDb();
+    const tx = db.transaction(HISTORY_STORE_NAME, 'readwrite');
+    const index = tx.store.index('byRoom');
+    let cursor = await index.openCursor(roomCode);
+    while (cursor) {
+      await cursor.delete();
+      cursor = await cursor.continue();
+    }
+    await tx.done;
+  } catch (err) {
+    console.warn(`Failed to clear room history for ${roomCode}:`, err);
   }
 }

@@ -291,9 +291,16 @@ export class TransferSender {
 
         // 4. Send binary chunk frame (TRD §9)
         const frame = encodeFrame(this.transferId, item.index, new Uint8Array(item.buffer));
-        const sent = this.transport.sendData(frame, channelIdx);
+        let sent = this.transport.sendData(frame, channelIdx);
         if (!sent) {
-          throw new Error(`DataChannel ${channelIdx} unavailable sending chunk ${item.index}`);
+          // Transient backoff retry to prevent unexpected transfer aborts on momentary buffer spikes
+          for (let attempt = 0; attempt < 20 && !sent && this.state === 'active'; attempt++) {
+            await new Promise((r) => setTimeout(r, 100));
+            sent = this.transport.sendData(frame, channelIdx);
+          }
+          if (!sent) {
+            throw new Error(`DataChannel ${channelIdx} unavailable sending chunk ${item.index}`);
+          }
         }
 
         this.chunksSentThisPass++;

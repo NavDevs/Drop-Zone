@@ -1,5 +1,6 @@
 import { formatBytes, formatSpeed, formatEta } from '../lib/transfer/format.js';
 import type { TransferRecord } from '../state/transfersStore.js';
+import { getTransferHub } from '../lib/transfer/TransferHub.js';
 
 interface TransferRowProps {
   transfer: TransferRecord;
@@ -55,6 +56,7 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
             </p>
             <p className="text-xs font-mono text-chrome/60 uppercase">
               {formatBytes(transfer.transferred)} / {formatBytes(transfer.size)}
+              {transfer.senderName && <span className="text-neonCyan ml-2">· {transfer.senderName}</span>}
             </p>
           </div>
         </div>
@@ -83,6 +85,18 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
                 SAVE FILE
               </span>
             </a>
+          )}
+
+          {isDone && !transfer.downloadUrl && transfer.peerId && (
+            <button
+              type="button"
+              onClick={() => getTransferHub().requestFile(transfer.peerId, transfer.name, transfer.size)}
+              className="-skew-x-12 hover:skew-x-0 border-2 border-neonMagenta vapor-button-magenta hover-vapor-magenta px-3 py-1 text-xs font-heading font-extrabold uppercase text-white transition cursor-pointer"
+            >
+              <span className="inline-block skew-x-12 hover:skew-x-0">
+                REQUEST FILE
+              </span>
+            </button>
           )}
         </div>
       </div>
