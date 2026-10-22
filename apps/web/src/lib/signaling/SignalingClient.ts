@@ -25,7 +25,17 @@ type ServerSocket = Socket<SignalingServerEvents, SignalingClientEvents>;
 type SignalListener = (payload: RelayedSignalPayload) => void;
 type PayloadOf<E extends keyof SignalingClientEvents> = Parameters<SignalingClientEvents[E]>[0];
 
-const SIGNALING_URL = import.meta.env.VITE_SIGNALING_URL || 'http://localhost:3001';
+function getSignalingUrl(): string {
+  if (import.meta.env.VITE_SIGNALING_URL) {
+    return import.meta.env.VITE_SIGNALING_URL;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return `${window.location.protocol}//${window.location.hostname}:3001`;
+  }
+  return 'http://localhost:3001';
+}
+
+const SIGNALING_URL = getSignalingUrl();
 const ACK_TIMEOUT_MS = 5000;
 const CONNECT_TIMEOUT_MS = 8000;
 
