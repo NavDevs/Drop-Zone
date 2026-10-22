@@ -49,22 +49,37 @@ export function Landing() {
 
   return (
     <main className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-8 p-4 md:p-8">
-      {/* Vaporwave Hero Banner (Matching ACME.SYS screenshot) */}
+      {/* Hero Banner */}
       <div className="text-center relative max-w-3xl">
         <div className="inline-block border border-neonCyan/60 bg-neonCyan/10 px-3 py-1 font-mono text-xs uppercase tracking-widest text-neonCyan -skew-x-12 mb-4 shadow-[0_0_15px_rgba(0,255,255,0.3)]">
-          &gt; v2.0 SYSTEM ONLINE // P2P DATA PROTOCOL
+          &gt; No accounts. No cloud. Files go device-to-device.
         </div>
 
         <h1 className="font-heading text-4xl sm:text-6xl md:text-7xl font-black uppercase tracking-tight text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.4)]">
-          TRANSFORM
+          DROP
         </h1>
         <h2 className="sunset-gradient-text font-heading text-4xl sm:text-6xl md:text-7xl font-black uppercase tracking-tight mt-1">
-          THE WAY YOU SHARE
+          ZONE
         </h2>
 
-        <p className="mt-4 text-base sm:text-lg md:text-xl text-chrome/70 font-mono max-w-xl mx-auto">
-          High-velocity peer-to-peer data transport directly over WebRTC. Zero cloud storage. No file limits.
+        <p className="mt-4 text-base sm:text-lg text-chrome/70 font-mono max-w-xl mx-auto">
+          Share files instantly with anyone in the same room — encrypted peer-to-peer,
+          straight from browser to browser. No upload. No storage. No account needed.
         </p>
+
+        {/* Feature pills */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3 font-mono text-xs uppercase tracking-wider">
+          {[
+            { label: '🔒 End-to-End Encrypted', color: 'text-neonCyan border-neonCyan/50' },
+            { label: '⚡ Direct WebRTC Transfer', color: 'text-neonMagenta border-neonMagenta/50' },
+            { label: '📂 No File Size Limit', color: 'text-sunsetOrange border-sunsetOrange/50' },
+            { label: '🛡️ Zero Server Logs', color: 'text-chrome/80 border-chrome/30' },
+          ].map(({ label, color }) => (
+            <span key={label} className={`border px-3 py-1 bg-black/50 ${color}`}>
+              {label}
+            </span>
+          ))}
+        </div>
       </div>
 
       {error && (
@@ -79,7 +94,7 @@ export function Landing() {
         <section className="border-2 border-retroBorder border-t-2 border-t-neonMagenta bg-cardBg/90 backdrop-blur-md p-5 shadow-panelGlow relative">
           <div className="flex items-center justify-between border-b border-retroBorder pb-2.5 mb-4">
             <span className="font-mono text-xs text-neonMagenta font-bold tracking-widest uppercase">
-              // TERMINAL_NODE_ID
+              // YOUR CALLSIGN
             </span>
             <div className="flex gap-1.5">
               <span className="h-2 w-2 rounded-full bg-neonMagenta" />
@@ -89,7 +104,7 @@ export function Landing() {
           </div>
           
           <label htmlFor="device-name-input" className="block font-heading text-xs uppercase tracking-wider text-chrome/80">
-            &gt; ENTER_CALLSIGN:
+            &gt; Choose a name others will see you as:
           </label>
           <input
             id="device-name-input"
@@ -97,22 +112,22 @@ export function Landing() {
             maxLength={30}
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
-            placeholder="e.g. CYBER_DECK_01"
+            placeholder="e.g. Swift Otter, Cyber Deck..."
             className="mt-2 w-full border-b-2 border-neonMagenta bg-black/60 px-3 py-2 font-mono text-lg text-neonCyan placeholder:text-neonMagenta/40 focus:border-neonCyan focus:shadow-[0_0_15px_#00FFFF] focus:outline-none"
           />
         </section>
 
-        {/* Create / Initialize Matrix Section */}
+        {/* Create Room Section */}
         <section className="border-2 border-retroBorder border-t-2 border-t-neonCyan bg-cardBg/90 backdrop-blur-md p-5 shadow-panelGlow">
           <div className="flex items-center justify-between border-b border-retroBorder pb-2.5 mb-4">
             <span className="font-mono text-xs text-neonCyan font-bold tracking-widest uppercase">
-              // INITIALIZE_SESSION_POD
+              // CREATE A NEW ROOM
             </span>
-            <span className="font-mono text-xs text-chrome/40">[SECURE_DTLS]</span>
+            <span className="font-mono text-xs text-chrome/40">[ENCRYPTED]</span>
           </div>
 
           <p className="text-xs uppercase font-mono tracking-wider text-chrome/70 mb-3">
-            &gt; CODE_EXPIRY_THRESHOLD:
+            &gt; Room expires after:
           </p>
           <div className="flex flex-wrap gap-2.5" role="group" aria-label="Room lifetime">
             {TTL_CHOICES.map((t) => (
@@ -124,7 +139,7 @@ export function Landing() {
                 className={`font-mono text-xs uppercase tracking-wider px-3.5 py-1.5 border transition-all duration-150 cursor-pointer -skew-x-6 hover:skew-x-0 ${
                   ttlSec === t.value
                     ? 'border-neonCyan vapor-button-cyan font-black'
-                    : 'border-retroBorder bg-black/60 text-chrome/80 hover:border-neonCyan hover:text-neonCyan hover:bg-neonCyan/10 hover:shadow-[0_0_12px_rgba(0,255,255,0.4)]'
+                    : 'border-retroBorder bg-black/60 text-chrome/80 hover:border-neonCyan hover:text-white hover:bg-neonCyan/20 hover:shadow-[0_0_12px_rgba(0,255,255,0.6)]'
                 }`}
               >
                 <span className="inline-block skew-x-6 hover:skew-x-0 font-bold">
@@ -149,9 +164,9 @@ export function Landing() {
             aria-label="Create room"
             onClick={() => void handleCreate()}
             disabled={creating}
-            className="group mt-6 w-full -skew-x-12 border-2 border-neonCyan bg-transparent py-3.5 font-heading text-lg font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover:bg-neonCyan hover:shadow-[0_0_30px_#00FFFF] active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="group mt-6 w-full -skew-x-12 border-2 border-neonCyan bg-neonCyan/15 py-3.5 font-heading text-lg font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover:bg-neonCyan/30 hover:border-neonCyan hover:shadow-[0_0_30px_#00FFFF] active:scale-95 disabled:opacity-50 cursor-pointer"
           >
-            <span className="inline-block skew-x-12 text-neonCyan drop-shadow-[0_0_8px_rgba(0,255,255,0.9)] group-hover:text-black group-hover:skew-x-0 group-hover:drop-shadow-none transition-all duration-200">
+            <span className="inline-block skew-x-12 text-neonCyan drop-shadow-[0_0_8px_rgba(0,255,255,0.9)] group-hover:text-white group-hover:skew-x-0 group-hover:drop-shadow-[0_0_12px_#00FFFF] transition-all duration-200">
               {creating ? '> INITIALIZING_PORTAL...' : 'CREATE ROOM >>'}
             </span>
           </button>
@@ -182,9 +197,9 @@ export function Landing() {
               aria-label="Join"
               onClick={handleJoin}
               disabled={code.length !== 6}
-              className="group -skew-x-12 border-2 border-neonMagenta bg-neonMagenta px-8 py-2.5 font-heading text-sm font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover:bg-transparent hover:shadow-[0_0_20px_#FF00FF] active:scale-95 disabled:opacity-40 cursor-pointer"
+              className="group -skew-x-12 border-2 border-neonMagenta bg-neonMagenta/25 px-8 py-2.5 font-heading text-sm font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover:bg-neonMagenta/40 hover:border-neonMagenta hover:shadow-[0_0_20px_#FF00FF] active:scale-95 disabled:opacity-40 cursor-pointer"
             >
-              <span className="inline-block skew-x-12 text-black drop-shadow-none group-hover:text-neonMagenta group-hover:skew-x-0 group-hover:drop-shadow-[0_0_6px_rgba(255,0,255,0.9)] transition-all duration-200 font-extrabold">
+              <span className="inline-block skew-x-12 text-white drop-shadow-[0_0_6px_#FF00FF] group-hover:text-white group-hover:skew-x-0 group-hover:drop-shadow-[0_0_12px_#FF00FF] transition-all duration-200 font-extrabold">
                 JOIN
               </span>
             </button>

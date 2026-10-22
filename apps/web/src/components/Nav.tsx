@@ -26,30 +26,26 @@ export function Nav() {
           <Link
             to="/benchmark"
             className={[
-              'border px-4 py-1.5 transition-all duration-200 cursor-pointer',
+              'border px-4 py-1.5 transition-all duration-200 cursor-pointer font-bold',
               isCurrent('/benchmark')
-                ? 'border-neonCyan bg-neonCyan shadow-[0_0_18px_rgba(0,255,255,0.9)]'
-                : 'border-retroBorder bg-black/60 text-chrome/80 hover:border-neonCyan hover:text-neonCyan hover:shadow-[0_0_12px_rgba(0,255,255,0.4)]',
+                ? 'border-neonCyan bg-neonCyan/30 text-white font-extrabold shadow-[0_0_18px_rgba(0,255,255,0.8)] drop-shadow-[0_0_6px_#00FFFF]'
+                : 'border-retroBorder bg-black/60 text-chrome/80 hover:border-neonCyan hover:text-white hover:bg-neonCyan/20 hover:shadow-[0_0_15px_rgba(0,255,255,0.6)]',
             ].join(' ')}
           >
-            <span className={isCurrent('/benchmark') ? 'text-black font-extrabold' : ''}>
-              [ BENCHMARK ]
-            </span>
+            <span>[ BENCHMARK ]</span>
           </Link>
 
           {/* ABOUT link */}
           <Link
             to="/about"
             className={[
-              'border px-4 py-1.5 transition-all duration-200 cursor-pointer',
+              'border px-4 py-1.5 transition-all duration-200 cursor-pointer font-bold',
               isCurrent('/about')
-                ? 'border-neonMagenta bg-neonMagenta shadow-[0_0_18px_rgba(255,0,255,0.9)]'
-                : 'border-retroBorder bg-black/60 text-chrome/80 hover:border-neonMagenta hover:text-neonMagenta hover:shadow-[0_0_12px_rgba(255,0,255,0.4)]',
+                ? 'border-neonMagenta bg-neonMagenta/30 text-white font-extrabold shadow-[0_0_18px_rgba(255,0,255,0.8)] drop-shadow-[0_0_6px_#FF00FF]'
+                : 'border-retroBorder bg-black/60 text-chrome/80 hover:border-neonMagenta hover:text-white hover:bg-neonMagenta/20 hover:shadow-[0_0_15px_rgba(255,0,255,0.6)]',
             ].join(' ')}
           >
-            <span className={isCurrent('/about') ? 'text-black font-extrabold' : ''}>
-              [ ABOUT ]
-            </span>
+            <span>[ ABOUT ]</span>
           </Link>
 
           {/* Status indicator */}

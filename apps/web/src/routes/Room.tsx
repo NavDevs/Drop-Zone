@@ -268,9 +268,9 @@ export function Room() {
             data-testid="send-to-all-button"
             onClick={() => groupFileInputRef.current?.click()}
             disabled={Object.keys(peers).length === 0}
-            className="-skew-x-12 border-2 border-neonMagenta bg-neonMagenta px-5 py-2.5 font-heading text-xs font-bold uppercase tracking-widest text-black hover:skew-x-0 hover:bg-transparent hover:text-neonMagenta hover:shadow-[0_0_20px_#FF00FF] disabled:opacity-30 transition-all cursor-pointer"
+            className="-skew-x-12 border-2 border-neonMagenta bg-neonMagenta/25 px-5 py-2.5 font-heading text-xs font-bold uppercase tracking-widest text-white hover:skew-x-0 hover:bg-neonMagenta/40 hover:border-neonMagenta hover:text-white hover:shadow-[0_0_25px_#FF00FF] drop-shadow-[0_0_6px_#FF00FF] disabled:opacity-30 transition-all duration-200 cursor-pointer"
           >
-            <span className="inline-block skew-x-12 hover:skew-x-0">
+            <span className="inline-block skew-x-12 hover:skew-x-0 font-extrabold">
               BROADCAST DATA TO ALL ({Object.keys(peers).length}) &gt;&gt;
             </span>
           </button>

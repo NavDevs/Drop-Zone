@@ -100,9 +100,9 @@ export function Benchmark() {
               onClick={() => void runSyntheticSuite()}
               disabled={running}
               data-testid="run-benchmark-btn"
-              className="group -skew-x-12 border-2 border-neonCyan bg-transparent px-7 py-3 font-heading text-sm font-black uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover:bg-neonCyan hover:shadow-[0_0_25px_#00FFFF] active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="group -skew-x-12 border-2 border-neonCyan bg-neonCyan/15 px-7 py-3 font-heading text-sm font-black uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover:bg-neonCyan/30 hover:border-neonCyan hover:shadow-[0_0_25px_#00FFFF] active:scale-95 disabled:opacity-50 cursor-pointer"
             >
-              <span className="inline-block skew-x-12 text-neonCyan drop-shadow-[0_0_8px_rgba(0,255,255,0.9)] group-hover:text-black group-hover:skew-x-0 group-hover:drop-shadow-none transition-all duration-200">
+              <span className="inline-block skew-x-12 text-neonCyan drop-shadow-[0_0_8px_rgba(0,255,255,0.9)] group-hover:text-white group-hover:skew-x-0 group-hover:drop-shadow-[0_0_12px_#00FFFF] transition-all duration-200">
                 {running ? '> BENCHMARK_RUNNING...' : 'RUN BENCHMARK >>'}
               </span>
             </button>
@@ -112,9 +112,9 @@ export function Benchmark() {
                 type="button"
                 onClick={downloadCsv}
                 data-testid="download-csv-btn"
-                className="-skew-x-6 border border-retroBorder bg-black/60 px-4 py-2.5 font-mono text-xs uppercase tracking-wider text-chrome hover:skew-x-0 hover:border-neonMagenta hover:text-neonMagenta hover:bg-neonMagenta/10 hover:shadow-[0_0_15px_rgba(255,0,255,0.4)] active:scale-95 transition-all duration-200 cursor-pointer"
+                className="-skew-x-6 border border-retroBorder bg-black/60 px-4 py-2.5 font-mono text-xs uppercase tracking-wider text-chrome hover:skew-x-0 hover:border-neonMagenta hover:text-white hover:bg-neonMagenta/20 hover:shadow-[0_0_15px_rgba(255,0,255,0.6)] active:scale-95 transition-all duration-200 cursor-pointer font-bold"
               >
-                <span className="inline-block skew-x-6 hover:skew-x-0 font-bold">
+                <span className="inline-block skew-x-6 hover:skew-x-0">
                   [ EXPORT_CSV ]
                 </span>
               </button>

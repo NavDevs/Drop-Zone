@@ -69,7 +69,7 @@ export function IncomingDialog({ offers, onAccept, onDecline }: IncomingDialogPr
                   type="button"
                   data-testid={`accept-transfer-${offer.transferId}`}
                   onClick={() => onAccept(offer.transferId)}
-                  className="flex-1 -skew-x-12 border border-neonCyan bg-neonCyan py-2 font-heading text-xs font-bold uppercase tracking-wider text-black hover:skew-x-0 hover:bg-transparent hover:text-neonCyan hover:shadow-[0_0_15px_#00FFFF] transition cursor-pointer"
+                  className="flex-1 -skew-x-12 border-2 border-neonCyan bg-neonCyan/25 py-2 font-heading text-xs font-bold uppercase tracking-wider text-white hover:skew-x-0 hover:bg-neonCyan/40 hover:border-neonCyan hover:text-white hover:shadow-[0_0_20px_#00FFFF] drop-shadow-[0_0_6px_#00FFFF] transition cursor-pointer font-extrabold"
                 >
                   <span className="inline-block skew-x-12 hover:skew-x-0">
                     ACCEPT_STREAM &gt;&gt;
@@ -79,7 +79,7 @@ export function IncomingDialog({ offers, onAccept, onDecline }: IncomingDialogPr
                   type="button"
                   data-testid={`decline-transfer-${offer.transferId}`}
                   onClick={() => onDecline(offer.transferId)}
-                  className="-skew-x-12 border border-retroBorder bg-black/60 px-5 py-2 font-mono text-xs uppercase tracking-wider text-chrome/60 hover:text-white transition cursor-pointer"
+                  className="-skew-x-12 border border-retroBorder bg-black/60 px-5 py-2 font-mono text-xs uppercase tracking-wider text-chrome/70 hover:border-neonMagenta hover:text-white hover:bg-neonMagenta/20 transition cursor-pointer font-bold"
                 >
                   <span className="inline-block skew-x-12 hover:skew-x-0">
                     DECLINE

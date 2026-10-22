@@ -77,7 +77,7 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
               href={transfer.downloadUrl}
               download={transfer.name}
               data-testid={`download-link-${transfer.id}`}
-              className="-skew-x-12 border border-neonCyan bg-neonCyan px-3 py-1 text-xs font-heading font-bold uppercase text-black hover:skew-x-0 hover:shadow-[0_0_12px_#00FFFF]"
+              className="-skew-x-12 border-2 border-neonCyan bg-neonCyan/30 px-3 py-1 text-xs font-heading font-extrabold uppercase text-white drop-shadow-[0_0_6px_#00FFFF] hover:skew-x-0 hover:bg-neonCyan/50 hover:shadow-[0_0_15px_#00FFFF] transition"
             >
               <span className="inline-block skew-x-12 hover:skew-x-0">
                 SAVE_DATA
