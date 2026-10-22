@@ -139,7 +139,7 @@ export function Landing() {
                 className={`font-mono text-xs uppercase tracking-wider px-3.5 py-1.5 border transition-all duration-150 cursor-pointer -skew-x-6 hover:skew-x-0 ${
                   ttlSec === t.value
                     ? 'border-neonCyan vapor-button-cyan font-black'
-                    : 'border-retroBorder bg-black/60 text-chrome/80 hover:border-neonCyan hover:text-white hover:bg-neonCyan/20 hover:shadow-[0_0_12px_rgba(0,255,255,0.6)]'
+                    : 'border-retroBorder bg-black/60 text-chrome/80 hover-vapor-cyan'
                 }`}
               >
                 <span className="inline-block skew-x-6 hover:skew-x-0 font-bold">
@@ -164,9 +164,9 @@ export function Landing() {
             aria-label="Create room"
             onClick={() => void handleCreate()}
             disabled={creating}
-            className="group mt-6 w-full -skew-x-12 border-2 border-neonCyan bg-neonCyan/15 py-3.5 font-heading text-lg font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover:bg-neonCyan/30 hover:border-neonCyan hover:shadow-[0_0_30px_#00FFFF] active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="group mt-6 w-full -skew-x-12 border-2 border-neonCyan bg-black/60 py-3.5 font-heading text-lg font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover-vapor-cyan active:scale-95 disabled:opacity-50 cursor-pointer shadow-[0_0_10px_rgba(0,255,255,0.2)]"
           >
-            <span className="inline-block skew-x-12 text-neonCyan drop-shadow-[0_0_8px_rgba(0,255,255,0.9)] group-hover:text-white group-hover:skew-x-0 group-hover:drop-shadow-[0_0_12px_#00FFFF] transition-all duration-200">
+            <span className="inline-block skew-x-12 text-neonCyan drop-shadow-[0_0_8px_rgba(0,255,255,0.9)] group-hover:text-white group-hover:skew-x-0 group-hover:drop-shadow-[0_0_16px_#00FFFF] transition-all duration-200">
               {creating ? '> INITIALIZING_PORTAL...' : 'CREATE ROOM >>'}
             </span>
           </button>
@@ -197,9 +197,9 @@ export function Landing() {
               aria-label="Join"
               onClick={handleJoin}
               disabled={code.length !== 6}
-              className="group -skew-x-12 border-2 border-neonMagenta bg-neonMagenta/25 px-8 py-2.5 font-heading text-sm font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover:bg-neonMagenta/40 hover:border-neonMagenta hover:shadow-[0_0_20px_#FF00FF] active:scale-95 disabled:opacity-40 cursor-pointer"
+              className="group -skew-x-12 border-2 border-neonMagenta bg-black/60 px-8 py-2.5 font-heading text-sm font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover-vapor-magenta active:scale-95 disabled:opacity-40 cursor-pointer shadow-[0_0_10px_rgba(255,0,255,0.2)]"
             >
-              <span className="inline-block skew-x-12 text-white drop-shadow-[0_0_6px_#FF00FF] group-hover:text-white group-hover:skew-x-0 group-hover:drop-shadow-[0_0_12px_#FF00FF] transition-all duration-200 font-extrabold">
+              <span className="inline-block skew-x-12 text-neonMagenta drop-shadow-[0_0_6px_#FF00FF] group-hover:text-white group-hover:skew-x-0 group-hover:drop-shadow-[0_0_16px_#FF00FF] transition-all duration-200 font-extrabold">
                 JOIN
               </span>
             </button>

@@ -84,33 +84,54 @@
   -webkit-text-fill-color: transparent;
 }
 
-/* Vaporwave Scanline Button Pattern */
-.vapor-button-cyan {
+/* Vaporwave Scanline Button Patterns with Inner Glow & CRT Lines */
+.vapor-button-cyan,
+.hover-vapor-cyan:hover {
   position: relative;
-  background-color: rgba(0, 255, 255, 0.25);
+  background-color: rgba(0, 255, 255, 0.28) !important;
   background-image: repeating-linear-gradient(
     0deg,
-    rgba(0, 255, 255, 0.2),
-    rgba(0, 255, 255, 0.2) 2px,
+    rgba(0, 255, 255, 0.25),
+    rgba(0, 255, 255, 0.25) 2px,
     transparent 2px,
     transparent 4px
-  );
+  ) !important;
+  border-color: #00FFFF !important;
   color: #FFFFFF !important;
-  text-shadow: 0 0 8px #00FFFF, 0 0 15px rgba(0, 255, 255, 0.8);
-  box-shadow: 0 0 18px rgba(0, 255, 255, 0.7), inset 0 0 12px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 8px #00FFFF, 0 0 16px rgba(0, 255, 255, 0.9) !important;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.75), inset 0 0 14px rgba(0, 255, 255, 0.45) !important;
 }
 
-.vapor-button-magenta {
+.vapor-button-magenta,
+.hover-vapor-magenta:hover {
   position: relative;
-  background-color: rgba(255, 0, 255, 0.25);
+  background-color: rgba(255, 0, 255, 0.28) !important;
   background-image: repeating-linear-gradient(
     0deg,
-    rgba(255, 0, 255, 0.2),
-    rgba(255, 0, 255, 0.2) 2px,
+    rgba(255, 0, 255, 0.25),
+    rgba(255, 0, 255, 0.25) 2px,
     transparent 2px,
     transparent 4px
-  );
+  ) !important;
+  border-color: #FF00FF !important;
   color: #FFFFFF !important;
-  text-shadow: 0 0 8px #FF00FF, 0 0 15px rgba(255, 0, 255, 0.8);
-  box-shadow: 0 0 18px rgba(255, 0, 255, 0.7), inset 0 0 12px rgba(255, 0, 255, 0.3);
+  text-shadow: 0 0 8px #FF00FF, 0 0 16px rgba(255, 0, 255, 0.9) !important;
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.75), inset 0 0 14px rgba(255, 0, 255, 0.45) !important;
+}
+
+.vapor-button-orange,
+.hover-vapor-orange:hover {
+  position: relative;
+  background-color: rgba(255, 153, 0, 0.28) !important;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255, 153, 0, 0.25),
+    rgba(255, 153, 0, 0.25) 2px,
+    transparent 2px,
+    transparent 4px
+  ) !important;
+  border-color: #FF9900 !important;
+  color: #FFFFFF !important;
+  text-shadow: 0 0 8px #FF9900, 0 0 16px rgba(255, 153, 0, 0.9) !important;
+  box-shadow: 0 0 20px rgba(255, 153, 0, 0.75), inset 0 0 14px rgba(255, 153, 0, 0.45) !important;
 }
