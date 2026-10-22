@@ -89,34 +89,50 @@ Two things already soften this, so you may not need Part 2 at all:
 
 To eliminate the delay, send it one request every few minutes.
 
-### Set up the keep-alive (UptimeRobot)
+### Set up the keep-alive with cron-job.org
 
-1. Sign up at <https://uptimerobot.com> — free, no card. The free plan allows 50
-   monitors at a **5-minute** check interval.
-2. **Add New Monitor** → Monitor Type: **HTTP(s)**.
-3. **Friendly Name:** `DropZone signaling`.
-4. **URL:** `https://<signaling-host>/healthz`
+1. Sign up at <https://cron-job.org/en/signup/> — entirely free (donation-funded),
+   no credit card.
+2. Confirm your email, then open **Console** → **Create cronjob**.
+3. Fill in:
 
-   ```text
-   https://dropzone-signaling.onrender.com/healthz
-   ```
+   | Field | Value |
+   |---|---|
+   | Title | `DropZone signaling keep-alive` |
+   | URL | `https://dropzone-signaling.onrender.com/healthz` |
+   | Execution schedule | **Every 5 minutes** |
+   | Request method | `GET` |
 
-5. **Monitoring Interval:** 5 minutes.
-6. **Alert Contacts:** your email, so you also learn when it actually breaks.
-7. **Create Monitor.**
+4. Under **Advanced**, enable *Save responses in job history* while you are
+   setting up, so you can inspect each run.
+5. **Create**, then use **Test run** — expect HTTP `200` with body `{"ok":true}`.
+6. Add your email under **Notifications** so failures actually reach you.
 
-Five-minute pings never let the 15-minute idle timer expire, so the service stays
-up. You also get real downtime alerts for free.
+Free-plan facts that matter here: 1-minute minimum interval, unlimited jobs under
+fair use, a 30-second request timeout, and **the job is auto-disabled after 25
+consecutive failures** (re-enable it in the console if that ever happens).
 
-> ### Do not ping `/robots.txt`
-> While a free service is asleep, Render intercepts `/robots.txt` itself and
-> answers `Disallow: /`. Those requests **never reach your app and never trigger a
-> wake-up**. A monitor pointed there reports "up" forever while your service
-> sleeps. Ping a route your app actually serves — `/healthz` is exactly that.
+> **Why every 5 minutes and not 1:** Render sleeps after 15 idle minutes, and
+> cron-job.org documents that runs can be delayed during peak hours. Five minutes
+> leaves comfortable headroom; ten also works. One minute just adds noise.
 
-`cron-job.org` is an equivalent alternative (1-minute granularity). A scheduled
-GitHub Actions workflow also works, but GitHub disables scheduled runs after
-60 days of repository inactivity, which quietly kills the keep-alive.
+> **The first run after a sleep may show as failed.** Waking takes ~60 s while
+> cron-job.org aborts at 30 s, but the wake is already triggered — confirm that
+> the *next* run succeeds.
+
+> ### Do not point the job at `/robots.txt`
+> While a free service is asleep, Render intercepts that path itself and answers
+> `Disallow: /`. The job would return `200` forever while your service sleeps.
+> Point it at `/healthz`, a route your app actually serves.
+
+### Alternative: UptimeRobot
+
+UptimeRobot's free plan does the same job and adds uptime alerting: 50 monitors,
+5-minute interval, no card. Point an HTTP(s) monitor at the same `/healthz` URL.
+Its free plan is **non-commercial use only**.
+
+A scheduled GitHub Actions workflow also works, but GitHub disables scheduled
+runs after 60 days of repository inactivity, which quietly kills the keep-alive.
 
 ### The arithmetic you should know before relying on this
 
