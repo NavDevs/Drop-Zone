@@ -87,30 +87,41 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="relative h-2 w-full overflow-hidden border border-retroBorder bg-black">
+      {/* High-Visibility Glowing Outrun Progress Bar */}
+      <div className="relative h-3.5 w-full border border-neonCyan/60 bg-black/90 shadow-[0_0_15px_rgba(0,255,255,0.35)] p-0.5">
         <div
           role="progressbar"
           aria-valuenow={percent}
           aria-valuemin={0}
           aria-valuemax={100}
-          style={{ width: `${percent}%` }}
-          className={`h-full transition-all duration-150 ${
+          style={{ width: `${Math.max(percent, percent > 0 ? 1 : 0)}%` }}
+          className={`relative h-full transition-all duration-150 synth-progress-bar ${
             transfer.status === 'error'
-              ? 'bg-neonMagenta shadow-[0_0_10px_#FF00FF]'
+              ? 'bg-neonMagenta shadow-[0_0_15px_#FF00FF,0_0_30px_#FF00FF]'
               : transfer.status === 'done'
-              ? 'bg-neonCyan shadow-[0_0_10px_#00FFFF]'
-              : 'bg-gradient-to-r from-neonMagenta to-neonCyan shadow-[0_0_10px_#00FFFF]'
+              ? 'bg-neonCyan shadow-[0_0_15px_#00FFFF,0_0_30px_#00FFFF]'
+              : 'bg-gradient-to-r from-neonMagenta via-sunsetOrange to-neonCyan shadow-[0_0_18px_#00FFFF,0_0_32px_#00FFFF]'
           }`}
-        />
+        >
+          {/* Laser beam leading edge */}
+          {percent > 0 && percent < 100 && (
+            <span className="absolute right-0 top-0 bottom-0 w-1.5 bg-white shadow-[0_0_10px_#FFFFFF,0_0_18px_#00FFFF]" />
+          )}
+        </div>
       </div>
 
-      <div className="flex items-center justify-between font-mono text-xs text-chrome/60 uppercase">
-        <span>PROGRESS: {percent}%</span>
+      <div className="flex items-center justify-between font-mono text-xs text-chrome/70 uppercase">
+        <span>
+          PROGRESS: <strong className="text-white drop-shadow-[0_0_6px_#00FFFF] font-bold">{percent}%</strong>
+        </span>
         {isActive && (
           <div className="flex gap-4">
-            <span>BITRATE: {formatSpeed(transfer.speed)}</span>
-            <span>REMAINING: {formatEta(transfer.eta ?? null)}</span>
+            <span>
+              BITRATE: <strong className="text-neonCyan font-bold">{formatSpeed(transfer.speed)}</strong>
+            </span>
+            <span>
+              REMAINING: <strong className="text-sunsetOrange font-bold">{formatEta(transfer.eta ?? null)}</strong>
+            </span>
           </div>
         )}
         {transfer.error && <span className="text-neonMagenta font-bold truncate">[!] {transfer.error}</span>}
