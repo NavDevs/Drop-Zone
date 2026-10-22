@@ -11,9 +11,11 @@ export function Nav() {
 
         {/* Logo */}
         <Link to="/" className="group flex items-center gap-2.5 focus:outline-none">
-          <span className="flex h-8 w-8 -skew-x-12 items-center justify-center bg-neonMagenta font-heading font-black text-sm text-black shadow-[0_0_12px_#FF00FF] transition-all duration-200 group-hover:skew-x-0 group-hover:rotate-6 group-hover:bg-neonCyan group-hover:shadow-[0_0_22px_#00FFFF]">
-            ▲
-          </span>
+          <img
+            src="/favicon.svg"
+            alt="DropZone Logo"
+            className="h-8 w-8 -skew-x-12 rounded-sm transition-all duration-200 group-hover:skew-x-0 group-hover:rotate-6 group-hover:scale-110 drop-shadow-[0_0_12px_#00FFFF]"
+          />
           <span className="font-heading text-xl font-black tracking-widest text-white transition-colors group-hover:text-neonCyan">
             DROPZONE<span className="text-neonCyan font-mono text-base font-normal">.SYS</span>
           </span>
@@ -48,11 +50,16 @@ export function Nav() {
             <span className="inline-block skew-x-6 hover:skew-x-0">[ ABOUT ]</span>
           </Link>
 
-          {/* Status indicator */}
-          <span className="hidden sm:inline-flex items-center gap-1.5 border border-neonCyan/50 bg-neonCyan/10 px-2.5 py-1 text-xs text-neonCyan">
-            <span className="h-1.5 w-1.5 rounded-full bg-neonCyan animate-ping" />
-            GRID_ONLINE
-          </span>
+          {/* Status indicator with Scanline Inner Glow & Tilt */}
+          <div className="-skew-x-6 hover:skew-x-0 border px-3 py-1.5 transition-all duration-200 font-bold vapor-button-cyan select-none cursor-default">
+            <span className="inline-flex items-center gap-2 skew-x-6 hover:skew-x-0">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-white shadow-[0_0_8px_#FFFFFF]" />
+              </span>
+              GRID_ONLINE
+            </span>
+          </div>
 
         </div>
       </div>
