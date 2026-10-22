@@ -4,7 +4,6 @@ import {
   generateSyntheticChunk,
   exportResultsToCsv,
 } from '../lib/benchmark/benchmark.js';
-import { Nav } from '../components/Nav.js';
 
 export function Benchmark() {
   const [running, setRunning] = useState(false);
@@ -58,84 +57,103 @@ export function Benchmark() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
-      <Nav />
-      <main className="mx-auto max-w-4xl p-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold tracking-tight">Synthetic Data Benchmark</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Measures memory chunk generation and data processing without disk I/O (TRD §12, FR-32).
-          </p>
+    <main className="mx-auto max-w-4xl px-4 py-8 relative z-10">
+      {/* Header section */}
+      <div className="border-b-2 border-retroBorder pb-4 mb-6">
+        <div className="flex items-center gap-2 text-neonCyan font-mono text-xs uppercase tracking-widest mb-1">
+          <span>// DIAGNOSTICS_MODULE</span>
+          <span className="text-chrome/40">•</span>
+          <span className="text-neonMagenta">SYSTEM_THROUGHPUT</span>
         </div>
+        <h1 className="font-heading text-3xl sm:text-4xl font-black uppercase tracking-wider text-white neon-glow-cyan">
+          Synthetic Data Benchmark
+        </h1>
+        <p className="mt-2 text-sm font-mono text-chrome/70">
+          Measures memory chunk generation and data processing without disk I/O (TRD §12, FR-32).
+        </p>
+      </div>
 
-        <div className="mt-8 flex flex-wrap items-center gap-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <div className="flex items-center gap-2">
-            <label htmlFor="test-size" className="text-sm font-medium">
-              Data Size:
+      {/* Control Panel */}
+      <div className="border-2 border-retroBorder border-t-2 border-t-neonCyan bg-cardBg/90 backdrop-blur-md p-6 shadow-panelGlow">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <label htmlFor="test-size" className="text-xs uppercase font-mono tracking-wider text-neonCyan font-bold">
+              &gt; DATA_PAYLOAD_SIZE:
             </label>
             <select
               id="test-size"
               value={testSizeMb}
               onChange={(e) => setTestSizeMb(Number(e.target.value))}
               disabled={running}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
+              className="border border-retroBorder bg-black/80 px-3 py-2 font-mono text-sm text-neonCyan focus:border-neonCyan focus:outline-none cursor-pointer"
             >
-              <option value={5}>5 MB</option>
-              <option value={10}>10 MB</option>
-              <option value={25}>25 MB</option>
-              <option value={50}>50 MB</option>
+              <option value={5}>5 MB (QUICK_TEST)</option>
+              <option value={10}>10 MB (STANDARD)</option>
+              <option value={25}>25 MB (STRESS_TEST)</option>
+              <option value={50}>50 MB (MAX_STRESS)</option>
             </select>
           </div>
 
-          <button
-            type="button"
-            onClick={() => void runSyntheticSuite()}
-            disabled={running}
-            data-testid="run-benchmark-btn"
-            className="rounded-xl bg-primary-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 disabled:opacity-50"
-          >
-            {running ? 'Running Benchmark…' : 'Run Benchmark'}
-          </button>
-
-          {results.length > 0 && (
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={downloadCsv}
-              data-testid="download-csv-btn"
-              className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+              onClick={() => void runSyntheticSuite()}
+              disabled={running}
+              data-testid="run-benchmark-btn"
+              className="border-2 border-neonCyan bg-neonCyan px-6 py-2.5 font-heading text-sm font-bold uppercase tracking-wider text-black shadow-[0_0_15px_rgba(0,255,255,0.6)] hover:bg-white hover:border-white transition-all disabled:opacity-50 cursor-pointer"
             >
-              Export CSV
+              {running ? '> BENCHMARK_RUNNING…' : 'RUN BENCHMARK >>'}
             </button>
-          )}
-        </div>
 
-        {results.length > 0 && (
-          <div className="mt-8 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-gray-100 bg-gray-50 text-xs font-semibold uppercase text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
-                <tr>
-                  <th className="px-6 py-3">Chunk Size</th>
-                  <th className="px-6 py-3">Data Processed</th>
-                  <th className="px-6 py-3">Duration</th>
-                  <th className="px-6 py-3">Throughput</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {results.map((res) => (
-                  <tr key={res.chunkSize} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/20">
-                    <td className="px-6 py-4 font-mono">{res.chunkSize / 1024} KiB</td>
-                    <td className="px-6 py-4">{(res.totalBytes / 1024 / 1024).toFixed(1)} MB</td>
-                    <td className="px-6 py-4 font-mono">{res.durationMs.toFixed(1)} ms</td>
-                    <td className="px-6 py-4 font-mono font-semibold text-primary-600 dark:text-primary-400">
-                      {res.throughputMbps.toFixed(2)} Mbps
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {results.length > 0 && (
+              <button
+                type="button"
+                onClick={downloadCsv}
+                data-testid="download-csv-btn"
+                className="border border-retroBorder bg-black/50 px-4 py-2 font-mono text-xs uppercase tracking-wider text-chrome hover:border-neonMagenta hover:text-neonMagenta transition-all cursor-pointer"
+              >
+                [ EXPORT_CSV ]
+              </button>
+            )}
           </div>
-        )}
-      </main>
-    </div>
+        </div>
+      </div>
+
+      {/* Results Table */}
+      {results.length > 0 && (
+        <div className="mt-8 border-2 border-retroBorder bg-cardBg/90 backdrop-blur-md overflow-hidden shadow-panelGlow">
+          <div className="border-b border-retroBorder bg-black/60 px-5 py-3 flex items-center justify-between">
+            <span className="font-mono text-xs uppercase tracking-widest text-neonMagenta font-bold">
+              // TELEMETRY_RESULTS
+            </span>
+            <span className="font-mono text-xs text-chrome/50">
+              SAMPLE_COUNT: {results.length}
+            </span>
+          </div>
+          <table className="w-full text-left font-mono text-sm">
+            <thead className="border-b border-retroBorder bg-black/40 text-xs font-bold uppercase tracking-wider text-chrome/60">
+              <tr>
+                <th className="px-6 py-3.5">Chunk Size</th>
+                <th className="px-6 py-3.5">Data Processed</th>
+                <th className="px-6 py-3.5">Duration</th>
+                <th className="px-6 py-3.5">Throughput</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-retroBorder">
+              {results.map((res) => (
+                <tr key={res.chunkSize} className="hover:bg-neonCyan/5 transition-colors">
+                  <td className="px-6 py-4 text-neonCyan font-bold">{res.chunkSize / 1024} KiB</td>
+                  <td className="px-6 py-4 text-chrome/80">{(res.totalBytes / 1024 / 1024).toFixed(1)} MB</td>
+                  <td className="px-6 py-4 text-chrome/80">{res.durationMs.toFixed(1)} ms</td>
+                  <td className="px-6 py-4 font-bold text-sunsetOrange shadow-sm">
+                    {res.throughputMbps.toFixed(2)} Mbps
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </main>
   );
 }
