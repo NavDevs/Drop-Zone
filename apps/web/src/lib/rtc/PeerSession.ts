@@ -249,9 +249,28 @@ export class PeerSession {
 
   /** Send a control-channel message (JSON, zod-validated on the receiving side). */
   sendControl(message: ControlMessage): boolean {
-    if (!this.control || this.control.readyState !== 'open') return false;
-    this.control.send(JSON.stringify(message));
-    return true;
+    if (!this.control) return false;
+    if (this.control.readyState === 'connecting') {
+      // If channel is still opening, queue message to send immediately once open
+      const ctrl = this.control;
+      const sendOnceOpen = () => {
+        try {
+          ctrl.send(JSON.stringify(message));
+        } catch {
+          // ignore send error
+        }
+        ctrl.removeEventListener('open', sendOnceOpen);
+      };
+      ctrl.addEventListener('open', sendOnceOpen);
+      return true;
+    }
+    if (this.control.readyState !== 'open') return false;
+    try {
+      this.control.send(JSON.stringify(message));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** FR-05 text round trip over the control channel. */

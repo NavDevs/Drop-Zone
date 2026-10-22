@@ -70,13 +70,32 @@ export function createSignalingServer(overrides: Partial<ServerConfig> & { metri
 
   const limits = new Limits(config.limitPolicy);
 
+  const corsHandler = cors({
+    origin: (origin, callback) => {
+      // In local development / LAN, allow any origin or matching config
+      if (!origin || config.corsOrigins.includes('*') || config.corsOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      // Allow any local LAN IP on port 5173 / 3000 / localhost
+      if (/^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+      callback(null, true); // Dev-friendly fallback
+    },
+    credentials: true,
+  });
+
   const app: Express = express();
   const httpServer = createServer(app);
-  app.use(helmet());
-  app.use(cors({ origin: config.corsOrigins }));
+  app.use(helmet({ contentSecurityPolicy: false }));
+  app.use(corsHandler);
 
   const io: AppServer = new Server(httpServer, {
-    cors: { origin: config.corsOrigins, methods: ['GET', 'POST'] },
+    cors: {
+      origin: true,
+      methods: ['GET', 'POST'],
+      credentials: true,
+    },
   });
 
   const store = new RoomStore({

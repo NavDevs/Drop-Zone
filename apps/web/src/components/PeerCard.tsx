@@ -140,17 +140,6 @@ export function PeerCard({
               Ping
             </button>
           )}
-
-          {onSendFiles && (
-            <button
-              type="button"
-              data-testid={`send-file-button-${device.deviceId}`}
-              onClick={() => fileInputRef.current?.click()}
-              className="rounded-lg bg-primary-600 px-3 py-1 text-xs font-semibold text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              Send file
-            </button>
-          )}
         </div>
       )}
     </li>
