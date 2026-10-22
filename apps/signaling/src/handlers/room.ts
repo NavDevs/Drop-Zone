@@ -28,6 +28,13 @@ function broadcastRoom<E extends keyof ServerToClientEvents>(
   exceptSocketId?: string,
 ): void {
   type Emit = (e: E, p: Parameters<ServerToClientEvents[E]>[0]) => void;
+  // 1. Broadcast via Socket.IO room channel
+  if (exceptSocketId) {
+    (ctx.io.to(room.code).except(exceptSocketId).emit as Emit)(event, payload);
+  } else {
+    (ctx.io.to(room.code).emit as Emit)(event, payload);
+  }
+  // 2. Fallback: also emit directly to individual member sockets
   for (const peer of room.peers.values()) {
     if (peer.socketId !== exceptSocketId) {
       (ctx.io.to(peer.socketId).emit as Emit)(event, payload);

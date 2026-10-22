@@ -103,20 +103,36 @@ export class TransferSender {
     if (this.state !== 'idle') return;
     this.state = 'offering';
 
-    const sent = this.transport.sendControl({
-      t: 'offer',
-      transferId: this.transferId,
-      name: this.file.name,
-      size: this.file.size,
-      mime: this.file.type || 'application/octet-stream',
-      lastModified: this.file.lastModified,
-      chunkSize: this.chunkSize,
-      totalChunks: this.totalChunks,
-      channels: Math.max(1, this.transport.dataChannelCount()),
-    });
+    const sendOffer = () =>
+      this.transport.sendControl({
+        t: 'offer',
+        transferId: this.transferId,
+        name: this.file.name,
+        size: this.file.size,
+        mime: this.file.type || 'application/octet-stream',
+        lastModified: this.file.lastModified,
+        chunkSize: this.chunkSize,
+        totalChunks: this.totalChunks,
+        channels: Math.max(1, this.transport.dataChannelCount()),
+      });
 
+    let sent = sendOffer();
     if (!sent) {
-      this.fail(new Error('Failed to send offer over control channel'));
+      let attempts = 0;
+      const retryTimer = setInterval(() => {
+        attempts++;
+        if (this.state !== 'offering') {
+          clearInterval(retryTimer);
+          return;
+        }
+        sent = sendOffer();
+        if (sent || attempts >= 20) {
+          clearInterval(retryTimer);
+          if (!sent && this.state === 'offering') {
+            this.fail(new Error('Failed to send offer over control channel'));
+          }
+        }
+      }, 150);
     }
   }
 
@@ -273,7 +289,14 @@ export class TransferSender {
         const inflight = this.chunksSentThisPass - (this.lastAckReceived - this.receivedAtPassStart);
         if (inflight >= this.windowChunks) {
           await new Promise<void>((resolve) => {
-            this.ackWaiters.push(resolve);
+            let done = false;
+            const onAck = () => {
+              if (done) return;
+              done = true;
+              resolve();
+            };
+            this.ackWaiters.push(onAck);
+            setTimeout(onAck, 800);
           });
           if (this.state !== 'active') break;
         }

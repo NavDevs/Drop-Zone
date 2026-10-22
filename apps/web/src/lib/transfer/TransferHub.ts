@@ -278,6 +278,7 @@ export class TransferHub {
         if (file) {
           downloadUrl = URL.createObjectURL(file);
           this.downloadUrls.set(transferId, downloadUrl);
+          this.sharedFiles.set(`${item.name}-${item.size}`, file);
         }
         useTransfersStore.getState().update(transferId, {
           status: 'done',

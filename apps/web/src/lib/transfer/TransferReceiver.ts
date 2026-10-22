@@ -92,20 +92,16 @@ export class TransferReceiver {
           totalChunks: this.offer.totalChunks,
         });
       } catch (openErr) {
-        if (this.options.writerKind === 'fs-access') {
-          console.warn('FsAccessWriter open failed; falling back to MemoryWriter:', openErr);
-          this.writer = new MemoryWriter();
-          this.options.writerKind = 'memory';
-          await this.writer.open({
-            name: this.offer.name,
-            size: this.offer.size,
-            mime: this.offer.mime,
-            chunkSize: this.offer.chunkSize,
-            totalChunks: this.offer.totalChunks,
-          });
-        } else {
-          throw openErr;
-        }
+        console.warn(`${this.options.writerKind ?? 'backend'} open failed; falling back to MemoryWriter:`, openErr);
+        this.writer = new MemoryWriter();
+        this.options.writerKind = 'memory';
+        await this.writer.open({
+          name: this.offer.name,
+          size: this.offer.size,
+          mime: this.offer.mime,
+          chunkSize: this.offer.chunkSize,
+          totalChunks: this.offer.totalChunks,
+        });
       }
 
       this.state = 'active';
@@ -113,10 +109,19 @@ export class TransferReceiver {
       this.lastSampleTime = performance.now();
       void this.ensureWakeLock();
 
-      const sent = this.transport.sendControl({
-        t: 'accept',
-        transferId: this.transferId,
-      });
+      const sendAccept = () =>
+        this.transport.sendControl({
+          t: 'accept',
+          transferId: this.transferId,
+        });
+
+      let sent = sendAccept();
+      if (!sent) {
+        for (let attempt = 0; attempt < 15 && !sent && this.state === 'active'; attempt++) {
+          await new Promise((r) => setTimeout(r, 150));
+          sent = sendAccept();
+        }
+      }
 
       if (!sent) {
         throw new Error('Failed to send accept message over control channel');

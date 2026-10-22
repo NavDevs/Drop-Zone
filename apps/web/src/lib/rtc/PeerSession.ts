@@ -201,9 +201,27 @@ export class PeerSession {
     const channel = this.dataChannels[channelIndex];
     if (!channel || channel.bufferedAmount <= BUFFER_LOW) return Promise.resolve();
     return new Promise((resolve) => {
+      let done = false;
+      const onLow = () => {
+        if (done) return;
+        done = true;
+        resolve();
+      };
       const waiters = this.lowWaiters.get(channelIndex) ?? [];
-      waiters.push(resolve);
+      waiters.push(onLow);
       this.lowWaiters.set(channelIndex, waiters);
+
+      // Fallback timer: re-check every 50ms in case the event fired or was dropped
+      const timer = setInterval(() => {
+        if (done) {
+          clearInterval(timer);
+          return;
+        }
+        if (!channel || channel.bufferedAmount <= BUFFER_LOW || channel.readyState !== 'open') {
+          clearInterval(timer);
+          onLow();
+        }
+      }, 50);
     });
   }
 
@@ -226,6 +244,9 @@ export class PeerSession {
     this.ignoreOffer = !this.opts.polite && offerCollision;
     if (this.ignoreOffer) return;
     try {
+      if (offerCollision) {
+        await pc.setLocalDescription({ type: 'rollback' });
+      }
       await pc.setRemoteDescription(description);
       if (description.type === 'offer') {
         await pc.setLocalDescription();
@@ -451,7 +472,10 @@ export class PeerSession {
         break;
       }
       case 'text':
+        // Forward to both text listener (FR-05 round trip) AND control listener
+        // so TransferHub can handle dz:history-sync / dz:request-file payloads.
         this.opts.onText?.(message.text);
+        this.opts.onControl?.(message);
         break;
       default:
         // Transfer messages (offer/accept/ack/…) go to the transfer engine.

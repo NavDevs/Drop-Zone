@@ -221,6 +221,7 @@ export class SignalingClient {
     opts: { ttlSec?: RoomCreatePayload['ttlSec']; requireApproval?: boolean } = {},
   ): Promise<AckResult<RoomCreateAck>> {
     return this.call(`create:${device.deviceId}`, async () => {
+      usePeersStore.getState().setSelfId(device.deviceId);
       const store = useRoomStore.getState();
       store.setStatus('creating');
       store.setError(null);
@@ -251,6 +252,7 @@ export class SignalingClient {
 
   joinRoom(code: string, device: DeviceInfo = buildDeviceInfo()): Promise<AckResult<RoomJoinAck>> {
     return this.call(`join:${code}`, async () => {
+      usePeersStore.getState().setSelfId(device.deviceId);
       const store = useRoomStore.getState();
       store.setStatus('joining');
       store.setError(null);
