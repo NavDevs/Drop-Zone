@@ -149,9 +149,9 @@ export function Landing() {
             aria-label="Create room"
             onClick={() => void handleCreate()}
             disabled={creating}
-            className="mt-6 w-full -skew-x-12 border-2 border-neonCyan bg-transparent py-3.5 font-heading text-lg font-bold uppercase tracking-widest text-neonCyan hover:skew-x-0 hover:bg-neonCyan hover:text-black hover:shadow-[0_0_25px_#00FFFF] active:scale-95 disabled:opacity-50 transition-all duration-200 cursor-pointer"
+            className="group mt-6 w-full -skew-x-12 border-2 border-neonCyan bg-transparent py-3.5 font-heading text-lg font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover:bg-neonCyan hover:shadow-[0_0_30px_#00FFFF] active:scale-95 disabled:opacity-50 cursor-pointer"
           >
-            <span className="inline-block skew-x-12 hover:skew-x-0">
+            <span className="inline-block skew-x-12 text-neonCyan drop-shadow-[0_0_8px_rgba(0,255,255,0.9)] group-hover:text-black group-hover:skew-x-0 group-hover:drop-shadow-none transition-all duration-200">
               {creating ? '> INITIALIZING_PORTAL...' : 'CREATE ROOM >>'}
             </span>
           </button>
@@ -182,9 +182,9 @@ export function Landing() {
               aria-label="Join"
               onClick={handleJoin}
               disabled={code.length !== 6}
-              className="-skew-x-12 border-2 border-neonMagenta bg-neonMagenta px-8 py-2.5 font-heading text-sm font-bold uppercase tracking-widest text-black hover:skew-x-0 hover:bg-transparent hover:text-neonMagenta hover:shadow-[0_0_20px_#FF00FF] active:scale-95 disabled:opacity-40 transition-all duration-200 cursor-pointer"
+              className="group -skew-x-12 border-2 border-neonMagenta bg-neonMagenta px-8 py-2.5 font-heading text-sm font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover:bg-transparent hover:shadow-[0_0_20px_#FF00FF] active:scale-95 disabled:opacity-40 cursor-pointer"
             >
-              <span className="inline-block skew-x-12 hover:skew-x-0 font-bold">
+              <span className="inline-block skew-x-12 text-black drop-shadow-none group-hover:text-neonMagenta group-hover:skew-x-0 group-hover:drop-shadow-[0_0_6px_rgba(255,0,255,0.9)] transition-all duration-200 font-extrabold">
                 JOIN
               </span>
             </button>

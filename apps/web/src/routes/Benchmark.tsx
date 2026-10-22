@@ -100,9 +100,9 @@ export function Benchmark() {
               onClick={() => void runSyntheticSuite()}
               disabled={running}
               data-testid="run-benchmark-btn"
-              className="-skew-x-12 border-2 border-neonCyan vapor-button-cyan px-7 py-3 font-heading text-sm font-black uppercase tracking-widest text-black hover:skew-x-0 hover:bg-white hover:text-black hover:shadow-[0_0_25px_#00FFFF] active:scale-95 transition-all duration-200 disabled:opacity-50 cursor-pointer"
+              className="group -skew-x-12 border-2 border-neonCyan bg-transparent px-7 py-3 font-heading text-sm font-black uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover:bg-neonCyan hover:shadow-[0_0_25px_#00FFFF] active:scale-95 disabled:opacity-50 cursor-pointer"
             >
-              <span className="inline-block skew-x-12 hover:skew-x-0 font-bold">
+              <span className="inline-block skew-x-12 text-neonCyan drop-shadow-[0_0_8px_rgba(0,255,255,0.9)] group-hover:text-black group-hover:skew-x-0 group-hover:drop-shadow-none transition-all duration-200">
                 {running ? '> BENCHMARK_RUNNING...' : 'RUN BENCHMARK >>'}
               </span>
             </button>
