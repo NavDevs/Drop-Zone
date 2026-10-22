@@ -31,6 +31,8 @@ export function Room() {
   const peers = usePeersStore((s) => s.peers);
   const pending = usePeersStore((s) => s.pending);
   const selfId = usePeersStore((s) => s.selfId);
+  const notifications = usePeersStore((s) => s.notifications);
+  const dismissNotification = usePeersStore((s) => s.dismissNotification);
 
   const deviceName = useSettingsStore((s) => s.deviceName);
   const [renaming, setRenaming] = useState(false);
@@ -205,7 +207,34 @@ export function Room() {
   }
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-5 p-4">
+    <main className="mx-auto flex max-w-3xl flex-col gap-5 p-4 relative">
+      {/* Hand-drawn Floating Activity Toasts (xyz joined / abc left) */}
+      <div className="fixed top-16 right-4 z-40 flex flex-col gap-2 max-w-xs w-full pointer-events-none">
+        {notifications.slice(-4).map((n) => (
+          <div
+            key={n.id}
+            style={{ borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px' }}
+            className={`pointer-events-auto flex items-center justify-between gap-2 border-2 border-lead p-3 shadow-sketch text-base font-heading font-bold transition-all ${
+              n.type === 'join'
+                ? 'bg-postit text-lead rotate-1'
+                : 'bg-mutedPaper text-lead/80 -rotate-1'
+            }`}
+          >
+            <span>
+              {n.type === 'join' ? '👋 ' : '🏃 '}
+              <strong className="underline decoration-wavy decoration-markerRed">{n.name}</strong> {n.type === 'join' ? 'joined the room!' : 'left the room'}
+            </span>
+            <button
+              type="button"
+              onClick={() => dismissNotification(n.id)}
+              className="text-lead/50 hover:text-lead px-1 font-mono text-sm"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+
       {error && <ErrorBanner message={error.message} onDismiss={() => useRoomStore.getState().setError(null)} />}
 
       <RoomHeader

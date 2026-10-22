@@ -8,7 +8,9 @@
   }
 
   body {
-    @apply antialiased text-lead bg-paper;
+    @apply antialiased;
+    color: #2d2d2d;
+    background-color: #fdfbf7;
     font-family: 'Patrick Hand', cursive, sans-serif;
     background-image: radial-gradient(#e5e0d8 1.5px, transparent 1.5px);
     background-size: 24px 24px;
