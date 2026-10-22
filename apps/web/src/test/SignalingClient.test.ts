@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock socket.io-client so we can drive the socket by hand.
 const { mockSocket } = vi.hoisted(() => {
@@ -36,7 +36,7 @@ vi.mock('socket.io-client', () => ({
   }),
 }));
 
-const { SignalingClient } = await import('../lib/signaling/SignalingClient.js');
+const { SignalingClient, getSignalingUrl } = await import('../lib/signaling/SignalingClient.js');
 const { useRoomStore } = await import('../state/roomStore.js');
 const { usePeersStore } = await import('../state/peersStore.js');
 
@@ -150,5 +150,35 @@ describe('SignalingClient', () => {
     // leaveRoom is best-effort: it clears local state regardless of the failed emit.
     expect(useRoomStore.getState().code).toBeNull();
     expect(usePeersStore.getState().selfId).toBeNull();
+  });
+
+  it('keeps waiting through a failed attempt instead of rejecting immediately', async () => {
+    // A free-tier host that has spun down fails the first handshake or two while
+    // it boots; socket.io retries, so connect() must not bail on connect_error.
+    const slow = new SignalingClient();
+    const pending = slow.connect('http://test');
+    mockSocket.__fire('connect_error', new Error('xhr poll error'));
+    await expect(pending).resolves.toBeUndefined();
+  });
+});
+
+describe('getSignalingUrl', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('uses an explicit URL as-is', () => {
+    vi.stubEnv('VITE_SIGNALING_URL', 'https://signaling.example.com');
+    expect(getSignalingUrl()).toBe('https://signaling.example.com');
+  });
+
+  it('upgrades a bare host (Render Blueprint fromService) to https', () => {
+    vi.stubEnv('VITE_SIGNALING_URL', 'dropzone-signaling.onrender.com');
+    expect(getSignalingUrl()).toBe('https://dropzone-signaling.onrender.com');
+  });
+
+  it('falls back to localhost when nothing is configured', () => {
+    vi.stubEnv('VITE_SIGNALING_URL', '');
+    expect(getSignalingUrl()).toBe('http://localhost:3001');
   });
 });

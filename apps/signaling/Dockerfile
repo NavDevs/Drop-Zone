@@ -1,4 +1,8 @@
-# Multi-stage build for DropZone Signaling Server
+# Multi-stage build for the DropZone signaling server.
+#
+# Build context is the monorepo root (see infra/docker-compose.yml and
+# render.yaml), so paths below are relative to the repository root.
+
 FROM node:22-alpine AS builder
 
 WORKDIR /app
@@ -13,24 +17,28 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @dropzone/protocol build
 RUN pnpm --filter signaling build
 
+# Produce a self-contained, production-only bundle. `--legacy` is required in
+# pnpm 10 for non-injected workspace packages; it resolves the internal
+# `@dropzone/protocol` dependency into the output's node_modules.
+RUN pnpm --filter signaling deploy --prod --legacy /out
+
+
 FROM node:22-alpine AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
+
+COPY --from=builder /out ./
+
+# Hosts (Render, Railway, Fly, docker-compose) inject PORT at runtime.
+# Defaults to 3001 for plain `docker run`.
 ENV PORT=3001
-
-COPY --from=builder /app/pnpm-lock.yaml /app/package.json /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/packages/protocol ./packages/protocol
-COPY --from=builder /app/apps/signaling/package.json ./apps/signaling/
-COPY --from=builder /app/apps/signaling/dist ./apps/signaling/dist
-
-RUN corepack enable && corepack prepare pnpm@latest --activate
-RUN pnpm install --prod --frozen-lockfile
-
 EXPOSE 3001
 
-HEALTHCHECK --interval=15s --timeout=3s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/healthz || exit 1
+HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider "http://127.0.0.1:${PORT}/healthz" || exit 1
 
-CMD ["node", "apps/signaling/dist/server.js"]
+USER node
+
+CMD ["node", "dist/server.js"]

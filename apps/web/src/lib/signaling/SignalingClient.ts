@@ -26,11 +26,21 @@ type ServerSocket = Socket<SignalingServerEvents, SignalingClientEvents>;
 type SignalListener = (payload: RelayedSignalPayload) => void;
 type PayloadOf<E extends keyof SignalingClientEvents> = Parameters<SignalingClientEvents[E]>[0];
 
-function getSignalingUrl(): string {
-  if (import.meta.env.VITE_SIGNALING_URL) {
-    return import.meta.env.VITE_SIGNALING_URL;
+/** True when the app is served from a local dev origin (connect should fail fast). */
+function isLocalRuntime(): boolean {
+  if (typeof window === 'undefined') return true;
+  const host = window.location.hostname;
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.localhost');
+}
+
+export function getSignalingUrl(): string {
+  const configured = (import.meta.env.VITE_SIGNALING_URL ?? '').trim();
+  if (configured) {
+    // A Render Blueprint injects only the host (`fromService: … property: host`),
+    // so accept a bare hostname as well as an explicit URL.
+    return /^[a-z][a-z0-9+.-]*:\/\//i.test(configured) ? configured : `https://${configured}`;
   }
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+  if (typeof window !== 'undefined' && !isLocalRuntime()) {
     return `${window.location.protocol}//${window.location.hostname}:3001`;
   }
   return 'http://localhost:3001';
@@ -38,7 +48,14 @@ function getSignalingUrl(): string {
 
 const SIGNALING_URL = getSignalingUrl();
 const ACK_TIMEOUT_MS = 5000;
-const CONNECT_TIMEOUT_MS = 8000;
+const LOCAL_CONNECT_TIMEOUT_MS = 8000;
+/**
+ * A spun-down host (Render's free tier sleeps after 15 min idle) takes ~60 s to
+ * accept the first connection. socket.io keeps retrying in the background for
+ * that whole window, so the only real mistake is giving up before it lands.
+ */
+const REMOTE_CONNECT_TIMEOUT_MS = 95_000;
+const CONNECT_TIMEOUT_MS = isLocalRuntime() ? LOCAL_CONNECT_TIMEOUT_MS : REMOTE_CONNECT_TIMEOUT_MS;
 
 /**
  * Socket.IO signaling client: typed ack wrappers, backoff reconnection,
@@ -75,10 +92,9 @@ export class SignalingClient {
         window.clearTimeout(timer);
         resolve();
       });
-      socket.once('connect_error', () => {
-        window.clearTimeout(timer);
-        reject(new Error('NETWORK'));
-      });
+      // Deliberately no `connect_error` rejection: with reconnection enabled that
+      // event fires on every failed attempt, and rejecting on the first one turns
+      // a recoverable cold start into an immediate NETWORK error.
     });
     // Reset the cached promise on failure so a later call() can retry cleanly.
     this.connectPromise = attempt.catch((err: unknown): never => {
