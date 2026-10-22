@@ -3,7 +3,6 @@ import {
   DeviceInfoSchema,
   RoomCreatePayloadSchema,
   RoomJoinPayloadSchema,
-  RoomApprovePayloadSchema,
   DeviceUpdatePayloadSchema,
   SignalPayloadSchema,
   RoomCreateAckSchema,
@@ -78,7 +77,6 @@ describe('Signaling schemas', () => {
       const parsed = RoomCreatePayloadSchema.parse(payload);
       expect(parsed.device).toEqual(validDevice);
       expect(parsed.ttlSec).toBeUndefined();
-      expect(parsed.requireApproval).toBeUndefined();
     });
 
     it('parses valid TTL options (300, 600, 1800, 3600)', () => {
@@ -86,10 +84,8 @@ describe('Signaling schemas', () => {
         const parsed = RoomCreatePayloadSchema.parse({
           device: validDevice,
           ttlSec: ttl,
-          requireApproval: true,
         });
         expect(parsed.ttlSec).toBe(ttl);
-        expect(parsed.requireApproval).toBe(true);
       }
     });
 
@@ -133,20 +129,6 @@ describe('Signaling schemas', () => {
           code: '1234567',
           device: validDevice,
         }),
-      ).toThrow();
-    });
-  });
-
-  describe('RoomApprovePayloadSchema', () => {
-    it('parses valid approval payload', () => {
-      const payload = { deviceId: validUuid, allow: true };
-      const parsed = RoomApprovePayloadSchema.parse(payload);
-      expect(parsed.allow).toBe(true);
-    });
-
-    it('rejects invalid deviceId', () => {
-      expect(() =>
-        RoomApprovePayloadSchema.parse({ deviceId: 'bad-uuid', allow: false }),
       ).toThrow();
     });
   });
@@ -215,17 +197,11 @@ describe('Signaling schemas', () => {
         peers: [],
       };
       const parsed = RoomJoinAckSchema.parse(ack);
-      expect('code' in parsed && parsed.code).toBe('ABC234');
-    });
-
-    it('parses RoomJoinAck when pending approval', () => {
-      const ack = { pending: true as const };
-      const parsed = RoomJoinAckSchema.parse(ack);
-      expect('pending' in parsed && parsed.pending).toBe(true);
+      expect(parsed.code).toBe('ABC234');
     });
 
     it('rejects invalid RoomJoinAck', () => {
-      expect(() => RoomJoinAckSchema.parse({ pending: false })).toThrow();
+      expect(() => RoomJoinAckSchema.parse({ code: 123 })).toThrow();
     });
   });
 });

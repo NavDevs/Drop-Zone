@@ -14,7 +14,6 @@ export type DeviceInfo = z.infer<typeof DeviceInfoSchema>;
 export const RoomCreatePayloadSchema = z.object({
   device: DeviceInfoSchema,
   ttlSec: z.union([z.literal(300), z.literal(600), z.literal(1800), z.literal(3600)]).optional(),
-  requireApproval: z.boolean().optional(),
 });
 export type RoomCreatePayload = z.infer<typeof RoomCreatePayloadSchema>;
 
@@ -29,12 +28,6 @@ export type RoomLeavePayload = z.infer<typeof RoomLeavePayloadSchema>;
 
 export const RoomClosePayloadSchema = z.object({});
 export type RoomClosePayload = z.infer<typeof RoomClosePayloadSchema>;
-
-export const RoomApprovePayloadSchema = z.object({
-  deviceId: z.string().uuid(),
-  allow: z.boolean(),
-});
-export type RoomApprovePayload = z.infer<typeof RoomApprovePayloadSchema>;
 
 export const DeviceUpdatePayloadSchema = z.object({
   name: z.string().min(1).max(50),
@@ -73,17 +66,12 @@ export const RoomCreateAckSchema = z.object({
 });
 export type RoomCreateAck = z.infer<typeof RoomCreateAckSchema>;
 
-export const RoomJoinAckSchema = z.union([
-  z.object({
-    code: z.string(),
-    codeExpiresAt: z.number(),
-    iceServers: z.array(z.unknown()),
-    peers: z.array(PeerInfoSchema),
-  }),
-  z.object({
-    pending: z.literal(true),
-  }),
-]);
+export const RoomJoinAckSchema = z.object({
+  code: z.string(),
+  codeExpiresAt: z.number(),
+  iceServers: z.array(z.unknown()),
+  peers: z.array(PeerInfoSchema),
+});
 export type RoomJoinAck = z.infer<typeof RoomJoinAckSchema>;
 
 export const RoomRegenerateAckSchema = z.object({
@@ -106,11 +94,6 @@ export const PeerUpdatedPayloadSchema = z.object({
   device: DeviceInfoSchema,
 });
 export type PeerUpdatedPayload = z.infer<typeof PeerUpdatedPayloadSchema>;
-
-export const JoinRequestPayloadSchema = z.object({
-  device: DeviceInfoSchema,
-});
-export type JoinRequestPayload = z.infer<typeof JoinRequestPayloadSchema>;
 
 export const RoomClosedPayloadSchema = z.object({
   reason: z.string(),

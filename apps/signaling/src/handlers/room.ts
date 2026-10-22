@@ -3,7 +3,6 @@ import {
   ErrorCode,
   RoomCreatePayloadSchema,
   RoomJoinPayloadSchema,
-  RoomApprovePayloadSchema,
   DeviceUpdatePayloadSchema,
   MAX_PEERS_PER_ROOM,
   type ProtocolError,
@@ -59,11 +58,10 @@ export function releaseSocket(io: AppContext['io'], roomCode: string, socketId: 
   void s.leave(roomCode);
 }
 
-/** Notifies every member (peers + pending) that the room closed and releases their sockets. */
+/** Notifies every member that the room closed and releases their sockets. */
 export function notifyRoomClosed(io: AppContext['io'], room: Room, reason: RoomCloseReason): void {
   const reasonText = CLOSE_REASON_TEXT[reason];
-  const targets = [...room.peers.values(), ...room.pending.values()];
-  for (const target of targets) {
+  for (const target of room.peers.values()) {
     io.to(target.socketId).emit('room:closed', { reason: reasonText });
     releaseSocket(io, room.code, target.socketId);
   }
@@ -128,8 +126,8 @@ export function handleRoomEvents(ctx: AppContext, socket: AppSocket): void {
         ack(ackError(ErrorCode.RATE_LIMITED, 'Too many rooms created; try again later'));
         return;
       }
-      const { device, ttlSec, requireApproval } = parsed.data;
-      const room = ctx.store.createRoom(device, socket.id, { ttlSec, requireApproval });
+      const { device, ttlSec } = parsed.data;
+      const room = ctx.store.createRoom(device, socket.id, { ttlSec });
       socket.data.deviceId = device.deviceId;
       socket.data.deviceName = device.name;
       socket.data.roomId = room.code;
@@ -187,21 +185,6 @@ export function handleRoomEvents(ctx: AppContext, socket: AppSocket): void {
       if (!ctx.store.canAcceptPeer(room)) {
         ctx.metrics.joinsTotal.inc({ result: 'full' });
         ack(ackError(ErrorCode.ROOM_FULL, `Room is full (max ${MAX_PEERS_PER_ROOM})`));
-        return;
-      }
-
-      if (room.requireApproval) {
-        ctx.store.addPending(room, device, socket.id);
-        socket.data.deviceId = device.deviceId;
-        socket.data.deviceName = device.name;
-        socket.data.roomId = room.code;
-        socket.join(room.code);
-        const hostPeer = room.peers.get(room.hostDeviceId);
-        if (hostPeer) {
-          ctx.io.to(hostPeer.socketId).emit('join:request', { device });
-        }
-        ctx.metrics.joinsTotal.inc({ result: 'pending' });
-        ack({ pending: true as const });
         return;
       }
 
@@ -293,71 +276,6 @@ export function handleRoomEvents(ctx: AppContext, socket: AppSocket): void {
       ack({ code, codeExpiresAt });
     } catch (err) {
       ctx.logger.error({ err }, 'room:regenerate failed');
-      ack(ackError(ErrorCode.INTERNAL, 'Internal error'));
-    }
-  });
-
-  socket.on('room:approve', async (payload: unknown, ack: (res: unknown) => void) => {
-    try {
-      const deviceId = socket.data.deviceId;
-      if (!deviceId) {
-        ack(ackError(ErrorCode.NOT_IN_ROOM, 'Not in a room'));
-        return;
-      }
-      const room = ctx.store.getByDevice(deviceId);
-      if (!room) {
-        ack(ackError(ErrorCode.NOT_IN_ROOM, 'Not in a room'));
-        return;
-      }
-      if (room.hostDeviceId !== deviceId) {
-        ack(ackError(ErrorCode.NOT_HOST, 'Only the host can approve joiners'));
-        return;
-      }
-      const parsed = RoomApprovePayloadSchema.safeParse(payload);
-      if (!parsed.success) {
-        ack(ackError(ErrorCode.INVALID_PAYLOAD, 'Invalid room:approve payload'));
-        return;
-      }
-      const { deviceId: targetId, allow } = parsed.data;
-      if (allow) {
-        if (!ctx.store.canAcceptPeer(room)) {
-          ack(ackError(ErrorCode.ROOM_FULL, 'Room is full'));
-          return;
-        }
-        const approved = ctx.store.approvePending(room, targetId);
-        if (!approved) {
-          ack(ackError(ErrorCode.PEER_NOT_FOUND, 'No pending joiner with that deviceId'));
-          return;
-        }
-        // tell the approved socket it is in (self peer:joined), replay roster, send ICE
-        ctx.io.to(approved.joiner.socketId).emit('peer:joined', { device: approved.peer.info });
-        for (const peer of room.peers.values()) {
-          if (peer.info.deviceId !== approved.peer.info.deviceId) {
-            ctx.io.to(approved.joiner.socketId).emit('peer:joined', { device: peer.info });
-          }
-        }
-        const issued = ctx.ice.issue(approved.peer.info.deviceId);
-        if (issued.turnExpiresAt !== undefined) ctx.metrics.turnCredentialsIssuedTotal.inc();
-        ctx.io.to(approved.joiner.socketId).emit('ice:refresh', { iceServers: issued.iceServers });
-        const approvedSocket = ctx.io.sockets.sockets.get(approved.joiner.socketId);
-        if (approvedSocket) {
-          ctx.admit(approvedSocket, approved.peer.info.deviceId);
-        }
-        broadcastRoom(ctx, room, 'peer:joined', { device: approved.peer.info }, approved.joiner.socketId);
-        ctx.metrics.joinsTotal.inc({ result: 'approved' });
-      } else {
-        const denied = ctx.store.denyPending(room, targetId);
-        if (!denied) {
-          ack(ackError(ErrorCode.PEER_NOT_FOUND, 'No pending joiner with that deviceId'));
-          return;
-        }
-        ctx.io.to(denied.socketId).emit('room:closed', { reason: 'JOIN_DENIED' });
-        releaseSocket(ctx.io, room.code, denied.socketId);
-        ctx.metrics.joinsTotal.inc({ result: 'denied' });
-      }
-      ack({});
-    } catch (err) {
-      ctx.logger.error({ err }, 'room:approve failed');
       ack(ackError(ErrorCode.INTERNAL, 'Internal error'));
     }
   });

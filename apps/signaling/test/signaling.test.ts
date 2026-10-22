@@ -43,7 +43,7 @@ function waitForEvent<T>(socket: ClientSocket, event: string, timeoutMs = 3000):
   });
 }
 
-async function createRoom(device: DeviceInfo, opts: { ttlSec?: number; requireApproval?: boolean } = {}) {
+async function createRoom(device: DeviceInfo, opts: { ttlSec?: number } = {}) {
   const socket = await connect();
   const ack = await emitAck<{ code: string; codeExpiresAt: number; iceServers: unknown[]; peers: unknown[] }>(
     socket,
@@ -451,21 +451,6 @@ describe('presence, leave, and disconnect', () => {
     expect(joinAck.error).toBeUndefined();
   });
 
-  it('a denied joiner can join a different room on the same socket', async () => {
-    const host = makeDevice();
-    const { socket: hostSocket, ack: hostAck } = await createRoom(host, { requireApproval: true });
-    const joiner = makeDevice();
-    const joinSocket = await connect();
-    const joinReq = waitForEvent(hostSocket, 'join:request');
-    await emitAck(joinSocket, 'room:join', { code: hostAck.code, device: joiner });
-    await joinReq;
-    await emitAck(hostSocket, 'room:approve', { deviceId: joiner.deviceId, allow: false });
-
-    const open = await createRoom(makeDevice());
-    const ack = await emitAck(joinSocket, 'room:join', { code: open.ack.code, device: joiner });
-    expect(ack.error).toBeUndefined();
-  });
-
   it('broadcasts peer:left on socket disconnect', async () => {
     const host = makeDevice();
     const { socket: hostSocket, ack: hostAck } = await createRoom(host);
@@ -548,73 +533,6 @@ describe('host powers: regenerate, close, approve', () => {
     const joinSocket = await connect();
     await emitAck(joinSocket, 'room:join', { code: hostAck.code, device: makeDevice() });
     const ack = await emitAck(joinSocket, 'room:close', {});
-    expect(ack.error?.code).toBe('NOT_HOST');
-    void hostSocket;
-  });
-
-  it('approval flow: pending → approve → roster replay + ice:refresh', async () => {
-    const host = makeDevice();
-    const { socket: hostSocket, ack: hostAck } = await createRoom(host, { requireApproval: true });
-
-    const joiner = makeDevice();
-    const joinSocket = await connect();
-    const joinReq = waitForEvent<{ device: DeviceInfo }>(hostSocket, 'join:request');
-    const pendingAck = await emitAck<{ pending: boolean }>(joinSocket, 'room:join', {
-      code: hostAck.code,
-      device: joiner,
-    });
-    expect(pendingAck.pending).toBe(true);
-    expect((await joinReq).device.deviceId).toBe(joiner.deviceId);
-
-    // approve: joiner sees self peer:joined, then roster, then ice:refresh
-    const selfJoined = waitForEvent<{ device: DeviceInfo }>(joinSocket, 'peer:joined');
-    const iceRefresh = waitForEvent<{ iceServers: unknown[] }>(joinSocket, 'ice:refresh');
-    const ack = await emitAck(hostSocket, 'room:approve', { deviceId: joiner.deviceId, allow: true });
-    expect(ack.error).toBeUndefined();
-    expect((await selfJoined).device.deviceId).toBe(joiner.deviceId);
-    expect((await iceRefresh).iceServers.length).toBeGreaterThan(0);
-
-    const room = server.store.getByCode(hostAck.code);
-    expect(room?.peers.has(joiner.deviceId)).toBe(true);
-    expect(room?.pending.size).toBe(0);
-  });
-
-  it('deny sends JOIN_DENIED to the pending joiner', async () => {
-    const host = makeDevice();
-    const { socket: hostSocket, ack: hostAck } = await createRoom(host, { requireApproval: true });
-    const joiner = makeDevice();
-    const joinSocket = await connect();
-    const joinReq = waitForEvent(hostSocket, 'join:request');
-    await emitAck(joinSocket, 'room:join', { code: hostAck.code, device: joiner });
-    await joinReq;
-
-    const closed = waitForEvent<{ reason: string }>(joinSocket, 'room:closed');
-    const ack = await emitAck(hostSocket, 'room:approve', { deviceId: joiner.deviceId, allow: false });
-    expect(ack.error).toBeUndefined();
-    expect((await closed).reason).toBe('JOIN_DENIED');
-    const room = server.store.getByCode(hostAck.code);
-    expect(room?.peers.has(joiner.deviceId)).toBe(false);
-  });
-
-  it('a pending joiner cannot approve (not in room)', async () => {
-    const host = makeDevice();
-    const { socket: hostSocket, ack: hostAck } = await createRoom(host, { requireApproval: true });
-    const joiner = makeDevice();
-    const joinSocket = await connect();
-    const joinReq = waitForEvent(hostSocket, 'join:request');
-    await emitAck(joinSocket, 'room:join', { code: hostAck.code, device: joiner });
-    await joinReq;
-    const ack = await emitAck(joinSocket, 'room:approve', { deviceId: joiner.deviceId, allow: true });
-    // pending joiners are not room members yet
-    expect(ack.error?.code).toBe('NOT_IN_ROOM');
-  });
-
-  it('a joined non-host member cannot approve', async () => {
-    // room without approval: joiner is a full member
-    const { socket: hostSocket, ack: hostAck } = await createRoom(makeDevice());
-    const joinSocket = await connect();
-    await emitAck(joinSocket, 'room:join', { code: hostAck.code, device: makeDevice() });
-    const ack = await emitAck(joinSocket, 'room:approve', { deviceId: randomUUID(), allow: true });
     expect(ack.error?.code).toBe('NOT_HOST');
     void hostSocket;
   });

@@ -30,11 +30,10 @@ describe('RoomStore', () => {
     expect(store.getByDevice(device(1).deviceId)).toBe(room);
   });
 
-  it('respects custom ttl and requireApproval', () => {
-    const room = store.createRoom(device(1), 'sock1', { ttlSec: 300, requireApproval: true });
+  it('respects custom ttl', () => {
+    const room = store.createRoom(device(1), 'sock1', { ttlSec: 300 });
     expect(room.ttlSec).toBe(300);
     expect(room.codeExpiresAt).toBe(now + 300 * 1000);
-    expect(room.requireApproval).toBe(true);
   });
 
   it('blocks joins after code expiry but keeps the room', () => {
@@ -82,24 +81,6 @@ describe('RoomStore', () => {
     expect(store.getByCode(code)).toBe(room);
     expect(store.getByDevice(device(1).deviceId)).toBe(room);
     expect(store.codes.isFreed(oldCode)).toBe(true);
-  });
-
-  it('pending joiners: approve moves them into peers', () => {
-    const room = store.createRoom(device(1), 'sock1', { requireApproval: true });
-    store.addPending(room, device(2), 'sock2');
-    expect(room.peers.size).toBe(1);
-    const approved = store.approvePending(room, device(2).deviceId);
-    expect(approved?.peer.info.deviceId).toBe(device(2).deviceId);
-    expect(room.peers.size).toBe(2);
-    expect(room.pending.size).toBe(0);
-  });
-
-  it('pending joiners: deny removes them', () => {
-    const room = store.createRoom(device(1), 'sock1', { requireApproval: true });
-    store.addPending(room, device(2), 'sock2');
-    const denied = store.denyPending(room, device(2).deviceId);
-    expect(denied?.info.deviceId).toBe(device(2).deviceId);
-    expect(room.pending.size).toBe(0);
   });
 
   it('sweep closes idle rooms', () => {

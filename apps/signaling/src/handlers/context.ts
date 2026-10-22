@@ -4,7 +4,6 @@ import type {
   PeerJoinedPayload,
   PeerLeftPayload,
   PeerUpdatedPayload,
-  JoinRequestPayload,
   RelayedSignalPayload,
   RoomClosedPayload,
   RoomCodeChangedPayload,
@@ -28,7 +27,6 @@ export interface ClientToServerEvents {
   'room:join': (payload: unknown, ack: (res: unknown) => void) => void;
   'room:leave': (payload: unknown, ack: (res: unknown) => void) => void;
   'room:regenerate': (payload: unknown, ack: (res: unknown) => void) => void;
-  'room:approve': (payload: unknown, ack: (res: unknown) => void) => void;
   'room:close': (payload: unknown, ack: (res: unknown) => void) => void;
   'device:update': (payload: unknown, ack: (res: unknown) => void) => void;
   signal: (payload: unknown, ack: (res: unknown) => void) => void;
@@ -39,7 +37,6 @@ export interface ServerToClientEvents {
   'peer:joined': (payload: PeerJoinedPayload) => void;
   'peer:left': (payload: PeerLeftPayload) => void;
   'peer:updated': (payload: PeerUpdatedPayload) => void;
-  'join:request': (payload: JoinRequestPayload) => void;
   signal: (payload: RelayedSignalPayload) => void;
   'room:closed': (payload: RoomClosedPayload) => void;
   'room:codeChanged': (payload: RoomCodeChangedPayload) => void;

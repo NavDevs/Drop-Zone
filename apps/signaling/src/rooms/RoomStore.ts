@@ -14,12 +14,6 @@ export interface RoomPeer {
   joinedAt: number;
 }
 
-export interface PendingJoiner {
-  socketId: string;
-  info: DeviceInfo;
-  requestedAt: number;
-}
-
 export interface Room {
   code: string;
   createdAt: number;
@@ -28,9 +22,7 @@ export interface Room {
   hardExpiresAt: number;
   lastActivityAt: number;
   hostDeviceId: string;
-  requireApproval: boolean;
   peers: Map<string, RoomPeer>;
-  pending: Map<string, PendingJoiner>;
 }
 
 export type RoomCloseReason = 'empty' | 'idle' | 'hard-expiry' | 'host-closed';
@@ -100,7 +92,7 @@ export class RoomStore {
     }
   }
 
-  createRoom(host: DeviceInfo, socketId: string, opts: { ttlSec?: number; requireApproval?: boolean } = {}): Room {
+  createRoom(host: DeviceInfo, socketId: string, opts: { ttlSec?: number } = {}): Room {
     const code = this.codes.allocate();
     const createdAt = this.now();
     const ttlSec = opts.ttlSec ?? this.defaultTtlSec;
@@ -112,9 +104,7 @@ export class RoomStore {
       hardExpiresAt: createdAt + this.hardMaxSec * 1000,
       lastActivityAt: createdAt,
       hostDeviceId: host.deviceId,
-      requireApproval: opts.requireApproval ?? false,
       peers: new Map([[host.deviceId, { socketId, info: host, joinedAt: createdAt }]]),
-      pending: new Map(),
     };
     this.rooms.set(code, room);
     this.deviceToCode.set(host.deviceId, code);
@@ -154,7 +144,6 @@ export class RoomStore {
   removePeer(room: Room, deviceId: string): { peer: RoomPeer | undefined; becameHost: boolean } {
     const peer = room.peers.get(deviceId);
     room.peers.delete(deviceId);
-    room.pending.delete(deviceId);
     if (this.deviceToCode.get(deviceId) === room.code) {
       this.deviceToCode.delete(deviceId);
     }
@@ -180,29 +169,6 @@ export class RoomStore {
     return true;
   }
 
-  addPending(room: Room, device: DeviceInfo, socketId: string): PendingJoiner {
-    const joiner: PendingJoiner = { socketId, info: device, requestedAt: this.now() };
-    room.pending.set(device.deviceId, joiner);
-    this.touch(room);
-    return joiner;
-  }
-
-  approvePending(room: Room, deviceId: string): { joiner: PendingJoiner; peer: RoomPeer } | undefined {
-    const joiner = room.pending.get(deviceId);
-    if (!joiner) return undefined;
-    room.pending.delete(deviceId);
-    const peer = this.addPeer(room, joiner.info, joiner.socketId);
-    return { joiner, peer };
-  }
-
-  denyPending(room: Room, deviceId: string): PendingJoiner | undefined {
-    const joiner = room.pending.get(deviceId);
-    if (!joiner) return undefined;
-    room.pending.delete(deviceId);
-    this.touch(room);
-    return joiner;
-  }
-
   regenerateCode(room: Room): { oldCode: string; code: string; codeExpiresAt: number } {
     const oldCode = room.code;
     const code = this.codes.allocate();
@@ -212,9 +178,6 @@ export class RoomStore {
     room.codeExpiresAt = codeExpiresAt;
     this.rooms.set(code, room);
     for (const deviceId of room.peers.keys()) {
-      this.deviceToCode.set(deviceId, code);
-    }
-    for (const deviceId of room.pending.keys()) {
       this.deviceToCode.set(deviceId, code);
     }
     this.codes.markFreed(oldCode);
@@ -229,12 +192,12 @@ export class RoomStore {
   closeRoom(room: Room, _reason: RoomCloseReason): void {
     this.rooms.delete(room.code);
     this.codes.markFreed(room.code);
-    for (const deviceId of [...room.peers.keys(), ...room.pending.keys()]) {
+    for (const deviceId of room.peers.keys()) {
       if (this.deviceToCode.get(deviceId) === room.code) {
         this.deviceToCode.delete(deviceId);
       }
     }
-    // peer/pending maps are intentionally left intact so callers can still
+    // peer maps are intentionally left intact so callers can still
     // notify members; the room is unreachable from the store after this point
   }
 
