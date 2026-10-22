@@ -4,6 +4,7 @@ import type { RoomCreatePayload } from '@dropzone/protocol';
 import { buildDeviceInfo } from '../lib/device.js';
 import { getSignalingClient } from '../lib/signaling/SignalingClient.js';
 import { useRoomStore } from '../state/roomStore.js';
+import { useSettingsStore } from '../state/settingsStore.js';
 import { ErrorBanner } from '../components/ErrorBanner.js';
 
 type TtlSec = NonNullable<RoomCreatePayload['ttlSec']>;
@@ -20,19 +21,27 @@ export function Landing() {
   const [ttlSec, setTtlSec] = useState<TtlSec>(300);
   const [requireApproval, setRequireApproval] = useState(false);
   const [creating, setCreating] = useState(false);
+  const deviceName = useSettingsStore((s) => s.deviceName);
+  const setDeviceName = useSettingsStore((s) => s.setDeviceName);
+  const [nameInput, setNameInput] = useState(deviceName);
   const navigate = useNavigate();
   const error = useRoomStore((s) => s.error);
 
   const client = getSignalingClient();
 
   const handleJoin = (): void => {
+    const finalName = nameInput.trim() || deviceName;
+    setDeviceName(finalName);
     if (code.length === 6) navigate(`/r/${code.toUpperCase()}`);
   };
 
   const handleCreate = async (): Promise<void> => {
     if (creating) return;
     setCreating(true);
-    const res = await client.createRoom(buildDeviceInfo(), { ttlSec, requireApproval });
+    const finalName = nameInput.trim() || deviceName;
+    setDeviceName(finalName);
+    const device = { ...buildDeviceInfo(), name: finalName };
+    const res = await client.createRoom(device, { ttlSec, requireApproval });
     setCreating(false);
     if (res.ok) navigate(`/r/${res.data.code}`);
     // on failure the store error is set; rendered below
@@ -50,6 +59,25 @@ export function Landing() {
       {error && <div className="w-full max-w-md"><ErrorBanner message={error.message} /></div>}
 
       <div className="flex w-full max-w-md flex-col gap-4">
+        {/* Your Name Box */}
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900 shadow-sm">
+          <label htmlFor="device-name-input" className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
+            Your Name / Device Name
+          </label>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            This name will be shown to other members in the room.
+          </p>
+          <input
+            id="device-name-input"
+            type="text"
+            maxLength={30}
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            placeholder="e.g. Naveen's Phone"
+            className="mt-3 w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </section>
+
         <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Create a room</h2>
           <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Room lifetime">

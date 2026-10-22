@@ -35,18 +35,14 @@ export function PeerCard({
   device,
   presence,
   isSelf = false,
-  rtt,
   linkClass,
-  onPing,
   onSendFiles,
-  onOpenDiagnostics,
 }: Props) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const style = PRESENCE_STYLE[presence];
   const connected = presence === 'direct' || presence === 'relayed';
-  const showRtt = connected && typeof rtt === 'number';
   const label = connected && linkClass ? LINK_LABEL[linkClass] : style.label;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,35 +109,8 @@ export function PeerCard({
         <span className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
           <span className={`h-2 w-2 rounded-full ${style.dot}`} aria-hidden="true" />
           {label}
-          {showRtt && <span className="text-gray-400 dark:text-gray-500"> · {Math.round(rtt)} ms</span>}
         </span>
       </span>
-
-      {!isSelf && (
-        <div className="flex shrink-0 items-center gap-1.5">
-          {onOpenDiagnostics && connected && (
-            <button
-              type="button"
-              onClick={() => onOpenDiagnostics(device.deviceId)}
-              data-testid={`diagnostics-button-${device.deviceId}`}
-              className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-              title="View connection diagnostics and SAS"
-            >
-              Info
-            </button>
-          )}
-
-          {onPing && connected && (
-            <button
-              type="button"
-              onClick={() => onPing(device.deviceId)}
-              className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-            >
-              Ping
-            </button>
-          )}
-        </div>
-      )}
     </li>
   );
 }
