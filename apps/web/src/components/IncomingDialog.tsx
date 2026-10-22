@@ -17,11 +17,14 @@ export function IncomingDialog({ offers, onAccept, onDecline }: IncomingDialogPr
       aria-labelledby="incoming-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
     >
-      <div className="w-full max-w-md border-2 border-neonCyan border-t-4 border-t-neonMagenta bg-void/95 p-6 shadow-neonCyan">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto border-2 border-neonCyan border-t-4 border-t-neonMagenta bg-void/95 p-4 sm:p-6 shadow-neonCyan">
         <div className="flex items-center justify-between border-b border-retroBorder pb-3">
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 bg-neonMagenta shadow-[0_0_8px_#FF00FF]" />
-            <h2 id="incoming-title" className="font-heading text-lg font-black tracking-widest text-white uppercase">
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-3 w-3 items-center justify-center flex-shrink-0">
+              <span className="absolute inline-flex h-full w-full bg-neonMagenta opacity-80 shadow-[0_0_12px_#FF00FF,0_0_24px_#FF00FF]" />
+              <span className="relative inline-flex h-1.5 w-1.5 bg-white shadow-[0_0_6px_#FFFFFF]" />
+            </span>
+            <h2 id="incoming-title" className="font-heading text-base sm:text-lg font-black tracking-widest text-white uppercase">
               INCOMING TRANSFER
             </h2>
           </div>

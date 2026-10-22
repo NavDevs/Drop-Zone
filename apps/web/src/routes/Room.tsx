@@ -207,9 +207,9 @@ export function Room() {
   }
 
   return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-6 p-4 relative z-10">
+    <main className="mx-auto flex max-w-4xl flex-col gap-5 sm:gap-6 px-3 py-4 sm:p-6 relative z-10">
       {/* Vaporwave Neon Member Activity Notifications */}
-      <div className="fixed top-16 right-4 z-50 flex flex-col gap-2 max-w-xs w-full pointer-events-none">
+      <div className="fixed top-14 sm:top-16 left-3 sm:left-auto right-3 sm:right-4 z-50 flex flex-col gap-2 max-w-md sm:max-w-xs w-auto sm:w-full pointer-events-none">
         {notifications.slice(-4).map((n) => (
           <div
             key={n.id}
@@ -246,10 +246,13 @@ export function Room() {
         onRename={() => setRenaming(true)}
       />
 
-      <section aria-label="Devices in this room" className="border-2 border-retroBorder bg-cardBg/90 backdrop-blur-md p-5 shadow-panelGlow">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-retroBorder pb-3">
-          <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 bg-neonCyan shadow-[0_0_8px_#00FFFF]" />
+      <section aria-label="Devices in this room" className="border-2 border-retroBorder bg-cardBg/90 backdrop-blur-md p-4 sm:p-5 shadow-panelGlow">
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-retroBorder pb-3">
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-3 w-3 items-center justify-center flex-shrink-0">
+              <span className="absolute inline-flex h-full w-full bg-neonCyan opacity-80 shadow-[0_0_12px_#00FFFF,0_0_24px_#00FFFF]" />
+              <span className="relative inline-flex h-1.5 w-1.5 bg-white shadow-[0_0_6px_#FFFFFF]" />
+            </span>
             <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-neonCyan">
               CONNECTED DEVICES ({Object.keys(peers).length + 1})
             </h2>
@@ -268,7 +271,7 @@ export function Room() {
             data-testid="send-to-all-button"
             onClick={() => groupFileInputRef.current?.click()}
             disabled={Object.keys(peers).length === 0}
-            className="-skew-x-12 hover:skew-x-0 border-2 border-neonMagenta vapor-button-magenta hover-vapor-magenta px-5 py-2.5 font-heading text-xs font-bold uppercase tracking-widest text-white disabled:opacity-30 transition-all duration-200 cursor-pointer"
+            className="w-full sm:w-auto -skew-x-12 hover:skew-x-0 border-2 border-neonMagenta vapor-button-magenta hover-vapor-magenta px-5 py-2.5 font-heading text-xs font-bold uppercase tracking-widest text-white disabled:opacity-30 transition-all duration-200 cursor-pointer text-center"
           >
             <span className="inline-block skew-x-12 hover:skew-x-0 font-extrabold">
               BROADCAST DATA TO ALL ({Object.keys(peers).length}) &gt;&gt;

@@ -48,7 +48,7 @@ export function Landing() {
   };
 
   return (
-    <main className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-8 p-4 md:p-8">
+    <main className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-6 sm:gap-8 px-3 py-6 sm:p-6 md:p-8">
       {/* Hero Banner */}
       <div className="text-center relative max-w-3xl">
         <div className="inline-block border border-neonCyan/60 bg-neonCyan/10 px-3 py-1 font-mono text-xs uppercase tracking-widest text-neonCyan -skew-x-12 mb-4 shadow-[0_0_15px_rgba(0,255,255,0.3)]">
@@ -62,20 +62,20 @@ export function Landing() {
           ZONE
         </h2>
 
-        <p className="mt-4 text-base sm:text-lg text-chrome/70 font-mono max-w-xl mx-auto">
+        <p className="mt-4 text-sm sm:text-lg text-chrome/70 font-mono max-w-xl mx-auto px-2">
           Share files instantly with anyone in the same room — encrypted peer-to-peer,
           straight from browser to browser. No upload. No storage. No account needed.
         </p>
 
         {/* Feature pills */}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3 font-mono text-xs uppercase tracking-wider">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-3 font-mono text-[11px] sm:text-xs uppercase tracking-wider">
           {[
             { label: '🔒 End-to-End Encrypted', color: 'text-neonCyan border-neonCyan/50' },
             { label: '⚡ Direct WebRTC Transfer', color: 'text-neonMagenta border-neonMagenta/50' },
             { label: '📂 No File Size Limit', color: 'text-sunsetOrange border-sunsetOrange/50' },
             { label: '🛡️ Zero Server Logs', color: 'text-chrome/80 border-chrome/30' },
           ].map(({ label, color }) => (
-            <span key={label} className={`border px-3 py-1 bg-black/50 ${color}`}>
+            <span key={label} className={`border px-2.5 sm:px-3 py-1 bg-black/50 ${color}`}>
               {label}
             </span>
           ))}
@@ -89,9 +89,9 @@ export function Landing() {
       )}
 
       {/* Retro-Futuristic Terminal Control Boxes */}
-      <div className="flex w-full max-w-xl flex-col gap-6">
+      <div className="flex w-full max-w-xl flex-col gap-5 sm:gap-6">
         {/* Device Identity Terminal */}
-        <section className="border-2 border-retroBorder border-t-2 border-t-neonMagenta bg-cardBg/90 backdrop-blur-md p-5 shadow-panelGlow relative">
+        <section className="border-2 border-retroBorder border-t-2 border-t-neonMagenta bg-cardBg/90 backdrop-blur-md p-4 sm:p-5 shadow-panelGlow relative">
           <div className="flex items-center justify-between border-b border-retroBorder pb-2.5 mb-4">
             <span className="font-mono text-xs text-neonMagenta font-bold tracking-widest uppercase">
               // YOUR CALLSIGN
@@ -113,12 +113,12 @@ export function Landing() {
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
             placeholder="e.g. Swift Otter, Cyber Deck..."
-            className="mt-2 w-full border-b-2 border-neonMagenta bg-black/60 px-3 py-2 font-mono text-lg text-neonCyan placeholder:text-neonMagenta/40 focus:border-neonCyan focus:shadow-[0_0_15px_#00FFFF] focus:outline-none"
+            className="mt-2 w-full border-b-2 border-neonMagenta bg-black/60 px-3 py-2 font-mono text-base sm:text-lg text-neonCyan placeholder:text-neonMagenta/40 focus:border-neonCyan focus:shadow-[0_0_15px_#00FFFF] focus:outline-none"
           />
         </section>
 
         {/* Create Room Section */}
-        <section className="border-2 border-retroBorder border-t-2 border-t-neonCyan bg-cardBg/90 backdrop-blur-md p-5 shadow-panelGlow">
+        <section className="border-2 border-retroBorder border-t-2 border-t-neonCyan bg-cardBg/90 backdrop-blur-md p-4 sm:p-5 shadow-panelGlow">
           <div className="flex items-center justify-between border-b border-retroBorder pb-2.5 mb-4">
             <span className="font-mono text-xs text-neonCyan font-bold tracking-widest uppercase">
               // CREATE A NEW ROOM
@@ -129,14 +129,14 @@ export function Landing() {
           <p className="text-xs uppercase font-mono tracking-wider text-chrome/70 mb-3">
             &gt; Room expires after:
           </p>
-          <div className="flex flex-wrap gap-2.5" role="group" aria-label="Room lifetime">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-2.5" role="group" aria-label="Room lifetime">
             {TTL_CHOICES.map((t) => (
               <button
                 key={t.value}
                 type="button"
                 onClick={() => setTtlSec(t.value)}
                 aria-pressed={ttlSec === t.value}
-                className={`font-mono text-xs uppercase tracking-wider px-3.5 py-1.5 border transition-all duration-150 cursor-pointer -skew-x-6 hover:skew-x-0 ${
+                className={`font-mono text-xs uppercase tracking-wider px-3 sm:px-3.5 py-2 sm:py-1.5 border transition-all duration-150 cursor-pointer -skew-x-6 hover:skew-x-0 text-center ${
                   ttlSec === t.value
                     ? 'border-neonCyan vapor-button-cyan font-black'
                     : 'border-retroBorder bg-black/60 text-chrome/80 hover-vapor-cyan'
@@ -164,7 +164,7 @@ export function Landing() {
             aria-label="Create room"
             onClick={() => void handleCreate()}
             disabled={creating}
-            className="group mt-6 w-full -skew-x-12 border-2 border-neonCyan bg-black/60 py-3.5 font-heading text-lg font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover-vapor-cyan active:scale-95 disabled:opacity-50 cursor-pointer shadow-[0_0_10px_rgba(0,255,255,0.2)]"
+            className="group mt-6 w-full -skew-x-12 border-2 border-neonCyan bg-black/60 py-3.5 font-heading text-base sm:text-lg font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover-vapor-cyan active:scale-95 disabled:opacity-50 cursor-pointer shadow-[0_0_10px_rgba(0,255,255,0.2)]"
           >
             <span className="inline-block skew-x-12 text-neonCyan drop-shadow-[0_0_8px_rgba(0,255,255,0.9)] group-hover:text-white group-hover:skew-x-0 group-hover:drop-shadow-[0_0_16px_#00FFFF] transition-all duration-200">
               {creating ? '> INITIALIZING ROOM...' : 'CREATE ROOM >>'}
@@ -173,7 +173,7 @@ export function Landing() {
         </section>
 
         {/* Join Matrix Node Section */}
-        <section className="border-2 border-retroBorder border-t-2 border-t-sunsetOrange bg-cardBg/90 backdrop-blur-md p-5 shadow-panelGlow">
+        <section className="border-2 border-retroBorder border-t-2 border-t-sunsetOrange bg-cardBg/90 backdrop-blur-md p-4 sm:p-5 shadow-panelGlow">
           <div className="flex items-center justify-between border-b border-retroBorder pb-2.5 mb-4">
             <span className="font-mono text-xs text-sunsetOrange font-bold tracking-widest uppercase">
               // CONNECT TO ROOM
@@ -190,14 +190,14 @@ export function Landing() {
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-              className="flex-1 border-b-2 border-sunsetOrange bg-black/60 px-4 py-2 text-center font-mono text-xl tracking-[0.2em] text-sunsetOrange placeholder:text-sunsetOrange/40 focus:border-neonCyan focus:shadow-[0_0_15px_#00FFFF] focus:outline-none"
+              className="flex-1 border-b-2 border-sunsetOrange bg-black/60 px-4 py-2.5 text-center font-mono text-lg sm:text-xl tracking-[0.2em] text-sunsetOrange placeholder:text-sunsetOrange/40 focus:border-neonCyan focus:shadow-[0_0_15px_#00FFFF] focus:outline-none"
             />
             <button
               type="button"
               aria-label="Join"
               onClick={handleJoin}
               disabled={code.length !== 6}
-              className="group -skew-x-12 border-2 border-neonMagenta bg-black/60 px-8 py-2.5 font-heading text-sm font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover-vapor-magenta active:scale-95 disabled:opacity-40 cursor-pointer shadow-[0_0_10px_rgba(255,0,255,0.2)]"
+              className="w-full sm:w-auto group -skew-x-12 border-2 border-neonMagenta bg-black/60 px-8 py-3 sm:py-2.5 font-heading text-sm font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover-vapor-magenta active:scale-95 disabled:opacity-40 cursor-pointer shadow-[0_0_10px_rgba(255,0,255,0.2)] text-center"
             >
               <span className="inline-block skew-x-12 text-neonMagenta drop-shadow-[0_0_6px_#FF00FF] group-hover:text-white group-hover:skew-x-0 group-hover:drop-shadow-[0_0_16px_#FF00FF] transition-all duration-200 font-extrabold">
                 JOIN

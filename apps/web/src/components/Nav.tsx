@@ -6,29 +6,29 @@ export function Nav() {
   const isCurrent = (path: string) => location.pathname === path;
 
   return (
-    <nav className="sticky top-0 z-40 border-b-2 border-retroBorder bg-void/90 backdrop-blur-md px-4 py-3">
-      <div className="mx-auto flex max-w-6xl items-center justify-between">
+    <nav className="sticky top-0 z-40 border-b-2 border-retroBorder bg-void/90 backdrop-blur-md px-3 sm:px-4 py-2.5 sm:py-3">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2">
 
         {/* Logo */}
-        <Link to="/" className="group flex items-center gap-2.5 focus:outline-none">
+        <Link to="/" className="group flex items-center gap-2 sm:gap-2.5 focus:outline-none flex-shrink-0">
           <img
             src="/favicon.svg"
             alt="DropZone Logo"
-            className="h-8 w-8 -skew-x-12 rounded-sm transition-all duration-200 group-hover:skew-x-0 group-hover:rotate-6 group-hover:scale-110 drop-shadow-[0_0_12px_#00FFFF]"
+            className="h-7 w-7 sm:h-8 sm:w-8 -skew-x-12 rounded-sm transition-all duration-200 group-hover:skew-x-0 group-hover:rotate-6 group-hover:scale-110 drop-shadow-[0_0_12px_#00FFFF]"
           />
-          <span className="font-heading text-xl font-black tracking-widest text-white transition-colors group-hover:text-neonCyan">
+          <span className="font-heading text-lg sm:text-xl font-black tracking-widest text-white transition-colors group-hover:text-neonCyan">
             DROPZONE
           </span>
         </Link>
 
         {/* Nav links */}
-        <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-wider">
+        <div className="flex items-center gap-1.5 sm:gap-3 font-mono text-xs uppercase tracking-wider">
 
           {/* BENCHMARK link */}
           <Link
             to="/benchmark"
             className={[
-              '-skew-x-6 hover:skew-x-0 border px-4 py-1.5 transition-all duration-200 cursor-pointer font-bold',
+              '-skew-x-6 hover:skew-x-0 border px-2.5 sm:px-4 py-1 sm:py-1.5 text-[11px] sm:text-xs transition-all duration-200 cursor-pointer font-bold',
               isCurrent('/benchmark')
                 ? 'vapor-button-cyan'
                 : 'border-retroBorder bg-black/60 text-chrome/80 hover-vapor-cyan',
@@ -41,7 +41,7 @@ export function Nav() {
           <Link
             to="/about"
             className={[
-              '-skew-x-6 hover:skew-x-0 border px-4 py-1.5 transition-all duration-200 cursor-pointer font-bold',
+              '-skew-x-6 hover:skew-x-0 border px-2.5 sm:px-4 py-1 sm:py-1.5 text-[11px] sm:text-xs transition-all duration-200 cursor-pointer font-bold',
               isCurrent('/about')
                 ? 'vapor-button-magenta'
                 : 'border-retroBorder bg-black/60 text-chrome/80 hover-vapor-magenta',
@@ -51,13 +51,13 @@ export function Nav() {
           </Link>
 
           {/* Status indicator with Scanline Inner Glow & Tilt */}
-          <div className="-skew-x-6 hover:skew-x-0 border px-3 py-1.5 transition-all duration-200 font-bold vapor-button-cyan select-none cursor-default">
-            <span className="inline-flex items-center gap-2 skew-x-6 hover:skew-x-0">
+          <div className="hidden xs:flex -skew-x-6 hover:skew-x-0 border px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs transition-all duration-200 font-bold vapor-button-cyan select-none cursor-default items-center">
+            <span className="inline-flex items-center gap-1.5 sm:gap-2 skew-x-6 hover:skew-x-0">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-white shadow-[0_0_8px_#FFFFFF]" />
               </span>
-              GRID ONLINE
+              <span className="hidden sm:inline">GRID </span>ONLINE
             </span>
           </div>
 

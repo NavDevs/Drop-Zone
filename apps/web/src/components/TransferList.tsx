@@ -26,18 +26,24 @@ export function TransferList() {
   );
 
   return (
-    <section aria-label="File transfers" className="mt-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-          Transfers ({transferList.length})
-        </h2>
+    <section aria-label="File transfers" className="flex flex-col gap-3 border-2 border-retroBorder bg-cardBg/90 backdrop-blur-md p-4 sm:p-5 shadow-panelGlow">
+      <div className="flex items-center justify-between border-b border-retroBorder pb-3">
+        <div className="flex items-center gap-2.5">
+          <span className="relative flex h-3 w-3 items-center justify-center flex-shrink-0">
+            <span className="absolute inline-flex h-full w-full bg-sunsetOrange opacity-80 shadow-[0_0_12px_#FF9900,0_0_24px_#FF9900]" />
+            <span className="relative inline-flex h-1.5 w-1.5 bg-white shadow-[0_0_6px_#FFFFFF]" />
+          </span>
+          <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-sunsetOrange">
+            TRANSFERS ({transferList.length})
+          </h2>
+        </div>
         {hasFinished && (
           <button
             type="button"
             onClick={handleClearFinished}
-            className="text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="-skew-x-6 hover:skew-x-0 border border-retroBorder bg-black/40 px-3 py-1 font-mono text-xs uppercase tracking-wider text-chrome/60 hover:text-white hover-vapor-magenta transition cursor-pointer font-bold"
           >
-            Clear finished
+            <span className="inline-block skew-x-6 hover:skew-x-0">CLEAR DONE</span>
           </button>
         )}
       </div>
