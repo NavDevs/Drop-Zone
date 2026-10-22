@@ -22,7 +22,7 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
       case 'done':
         return (
           <span className="border border-neonMagenta bg-neonMagenta/10 px-2 py-0.5 text-xs font-mono font-bold text-neonMagenta shadow-[0_0_8px_#FF00FF]">
-            {transfer.verified ? 'VERIFIED_SHA256 ✓' : 'COMPLETE'}
+            {transfer.verified ? 'VERIFIED SHA-256 ✓' : 'COMPLETE'}
           </span>
         );
       case 'declined':
@@ -80,7 +80,7 @@ export function TransferRow({ transfer, onCancel }: TransferRowProps) {
               className="-skew-x-12 hover:skew-x-0 border-2 border-neonCyan vapor-button-cyan hover-vapor-cyan px-3 py-1 text-xs font-heading font-extrabold uppercase text-white transition cursor-pointer"
             >
               <span className="inline-block skew-x-12 hover:skew-x-0">
-                SAVE_DATA
+                SAVE FILE
               </span>
             </a>
           )}

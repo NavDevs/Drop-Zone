@@ -4,9 +4,9 @@ export function About() {
       {/* Header */}
       <div className="border-b-2 border-retroBorder pb-4 mb-8">
         <div className="flex items-center gap-2 text-neonMagenta font-mono text-xs uppercase tracking-widest mb-1">
-          <span>// PROTOCOL_ARCHITECTURE</span>
+          <span>// PROTOCOL ARCHITECTURE</span>
           <span className="text-chrome/40">•</span>
-          <span className="text-neonCyan">SECURE_MESH_NETWORK</span>
+          <span className="text-neonCyan">SECURE MESH NETWORK</span>
         </div>
         <h1 className="font-heading text-3xl sm:text-4xl font-black uppercase tracking-wider text-white neon-glow-magenta">
           About DropZone
@@ -20,7 +20,7 @@ export function About() {
         {/* Card: What the server sees */}
         <section className="border-2 border-retroBorder border-l-4 border-l-neonCyan bg-cardBg/90 backdrop-blur-md p-6 shadow-panelGlow hover:border-neonCyan hover:shadow-[0_0_30px_rgba(0,255,255,0.25)] transition-all duration-200">
           <h2 className="font-heading text-lg font-bold uppercase tracking-wider text-neonCyan mb-3 drop-shadow-[0_0_5px_rgba(0,255,255,0.8)]">
-            &gt; WHAT_THE_SERVER_SEES
+            &gt; WHAT THE SERVER SEES
           </h2>
           <ul className="space-y-2 font-mono text-sm text-chrome/90">
             <li className="flex items-center gap-2">
@@ -38,7 +38,7 @@ export function About() {
         {/* Card: What the server never sees */}
         <section className="border-2 border-retroBorder border-l-4 border-l-neonMagenta bg-cardBg/90 backdrop-blur-md p-6 shadow-panelGlow hover:border-neonMagenta hover:shadow-[0_0_30px_rgba(255,0,255,0.25)] transition-all duration-200">
           <h2 className="font-heading text-lg font-bold uppercase tracking-wider text-neonMagenta mb-3 drop-shadow-[0_0_5px_rgba(255,0,255,0.8)]">
-            &gt; WHAT_THE_SERVER_NEVER_SEES
+            &gt; WHAT THE SERVER NEVER SEES
           </h2>
           <ul className="space-y-2 font-mono text-sm text-chrome/90">
             <li className="flex items-center gap-2">

@@ -104,7 +104,7 @@ export function PeerCard({
       <span className="min-w-0 flex-1">
         <span className="block truncate font-heading text-sm font-bold tracking-wider text-white">
           {device.name}
-          {isSelf && <span className="ml-2 font-mono text-xs font-normal text-neonMagenta">&lt;LOCAL_HOST&gt;</span>}
+          {isSelf && <span className="ml-2 font-mono text-xs font-normal text-neonMagenta">&lt;YOU&gt;</span>}
         </span>
         <span className="flex items-center gap-2 font-mono text-xs text-chrome/60 uppercase">
           <span className={`h-2 w-2 rounded-full ${style.dot} shadow-[0_0_8px_currentColor]`} aria-hidden="true" />

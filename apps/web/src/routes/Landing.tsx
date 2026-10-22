@@ -156,7 +156,7 @@ export function Landing() {
               onChange={(e) => setRequireApproval(e.target.checked)}
               className="h-4 w-4 rounded-none border border-neonMagenta bg-black text-neonMagenta accent-neonMagenta focus:ring-0 cursor-pointer"
             />
-            REQUIRE_HOST_CLEARANCE_APPROVAL
+            REQUIRE HOST CLEARANCE APPROVAL
           </label>
 
           <button
@@ -167,7 +167,7 @@ export function Landing() {
             className="group mt-6 w-full -skew-x-12 border-2 border-neonCyan bg-black/60 py-3.5 font-heading text-lg font-bold uppercase tracking-widest transition-all duration-200 hover:skew-x-0 hover-vapor-cyan active:scale-95 disabled:opacity-50 cursor-pointer shadow-[0_0_10px_rgba(0,255,255,0.2)]"
           >
             <span className="inline-block skew-x-12 text-neonCyan drop-shadow-[0_0_8px_rgba(0,255,255,0.9)] group-hover:text-white group-hover:skew-x-0 group-hover:drop-shadow-[0_0_16px_#00FFFF] transition-all duration-200">
-              {creating ? '> INITIALIZING_PORTAL...' : 'CREATE ROOM >>'}
+              {creating ? '> INITIALIZING ROOM...' : 'CREATE ROOM >>'}
             </span>
           </button>
         </section>
@@ -176,7 +176,7 @@ export function Landing() {
         <section className="border-2 border-retroBorder border-t-2 border-t-sunsetOrange bg-cardBg/90 backdrop-blur-md p-5 shadow-panelGlow">
           <div className="flex items-center justify-between border-b border-retroBorder pb-2.5 mb-4">
             <span className="font-mono text-xs text-sunsetOrange font-bold tracking-widest uppercase">
-              // CONNECT_TO_PORTAL
+              // CONNECT TO ROOM
             </span>
           </div>
 

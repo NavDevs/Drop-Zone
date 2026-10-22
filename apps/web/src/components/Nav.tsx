@@ -57,7 +57,7 @@ export function Nav() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-white shadow-[0_0_8px_#FFFFFF]" />
               </span>
-              GRID_ONLINE
+              GRID ONLINE
             </span>
           </div>
 

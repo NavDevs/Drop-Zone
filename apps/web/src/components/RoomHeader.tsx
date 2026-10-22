@@ -33,7 +33,7 @@ export function RoomHeader({ code, codeExpiresAt, isHost, onRegenerate, onCloseR
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="font-mono text-xs uppercase tracking-widest text-neonCyan font-bold">
-            // ACTIVE_PORTAL_SESSION
+            // ACTIVE ROOM SESSION
           </p>
           <p
             className="font-mono text-3xl sm:text-5xl font-black tracking-[0.25em] text-white drop-shadow-[0_0_15px_#00FFFF]"
@@ -43,7 +43,7 @@ export function RoomHeader({ code, codeExpiresAt, isHost, onRegenerate, onCloseR
             {code}
           </p>
           <p className="mt-1 font-mono text-xs uppercase tracking-wider text-chrome/60" aria-live="polite">
-            {seconds > 0 ? `[ TIME_TO_EXPIRY: ${formatCountdown(seconds)} ]` : '[ SESSION_EXPIRED ]'}
+            {seconds > 0 ? `[ EXPIRES IN: ${formatCountdown(seconds)} ]` : '[ SESSION EXPIRED ]'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2.5">
@@ -53,7 +53,7 @@ export function RoomHeader({ code, codeExpiresAt, isHost, onRegenerate, onCloseR
             className="-skew-x-12 border-2 border-neonCyan bg-black/60 px-4 py-1.5 font-heading text-xs font-bold uppercase tracking-wider text-neonCyan hover:skew-x-0 hover-vapor-cyan transition cursor-pointer"
           >
             <span className="inline-block skew-x-12 hover:skew-x-0 font-extrabold">
-              {copied ? 'LINK_COPIED ✓' : 'COPY_COORDINATES'}
+              {copied ? 'LINK COPIED ✓' : 'COPY LINK'}
             </span>
           </button>
           <button
@@ -63,7 +63,7 @@ export function RoomHeader({ code, codeExpiresAt, isHost, onRegenerate, onCloseR
             className="-skew-x-12 border-2 border-neonMagenta bg-black/60 px-4 py-1.5 font-heading text-xs font-bold uppercase tracking-wider text-neonMagenta hover:skew-x-0 hover-vapor-magenta transition cursor-pointer"
           >
             <span className="inline-block skew-x-12 hover:skew-x-0 font-extrabold">
-              {showQr ? 'HIDE_OPTICS' : 'OPTICAL_QR ▲'}
+              {showQr ? 'HIDE QR' : 'SHOW QR ▲'}
             </span>
           </button>
           {onRename && (
@@ -94,7 +94,7 @@ export function RoomHeader({ code, codeExpiresAt, isHost, onRegenerate, onCloseR
             onClick={onRegenerate}
             className="-skew-x-6 hover:skew-x-0 border border-neonCyan/40 bg-black/50 px-3 py-1 font-mono text-xs uppercase tracking-wider text-neonCyan hover-vapor-cyan cursor-pointer font-bold"
           >
-            <span className="inline-block skew-x-6 hover:skew-x-0">CYCLE_CODE</span>
+            <span className="inline-block skew-x-6 hover:skew-x-0">NEW CODE</span>
           </button>
         )}
         {isHost && onCloseRoom && (
@@ -104,7 +104,7 @@ export function RoomHeader({ code, codeExpiresAt, isHost, onRegenerate, onCloseR
             onClick={onCloseRoom}
             className="-skew-x-6 hover:skew-x-0 border border-sunsetOrange/50 bg-black/50 px-3 py-1 font-mono text-xs uppercase tracking-wider text-sunsetOrange hover-vapor-orange cursor-pointer font-bold"
           >
-            <span className="inline-block skew-x-6 hover:skew-x-0">TERMINATE_SESSION</span>
+            <span className="inline-block skew-x-6 hover:skew-x-0">CLOSE ROOM</span>
           </button>
         )}
         {onLeave && (

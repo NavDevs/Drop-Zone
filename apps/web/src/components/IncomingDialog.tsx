@@ -22,7 +22,7 @@ export function IncomingDialog({ offers, onAccept, onDecline }: IncomingDialogPr
           <div className="flex items-center gap-2">
             <span className="h-3 w-3 bg-neonMagenta shadow-[0_0_8px_#FF00FF]" />
             <h2 id="incoming-title" className="font-heading text-lg font-black tracking-widest text-white uppercase">
-              INBOUND_DATA_TRANSMISSION
+              INCOMING TRANSFER
             </h2>
           </div>
           <div className="flex gap-1.5">
@@ -32,7 +32,7 @@ export function IncomingDialog({ offers, onAccept, onDecline }: IncomingDialogPr
         </div>
 
         <p className="mt-2 text-xs font-mono uppercase tracking-wider text-chrome/60">
-          // CONSENT_REQUIRED: AUTHORIZE RECEPTION TO WRITE LOCALLY
+          // CONSENT REQUIRED: AUTHORIZE TRANSFER TO SAVE LOCALLY
         </p>
 
         <div className="mt-4 max-h-64 space-y-3 overflow-y-auto">
@@ -72,7 +72,7 @@ export function IncomingDialog({ offers, onAccept, onDecline }: IncomingDialogPr
                   className="flex-1 -skew-x-12 border-2 border-neonCyan vapor-button-cyan hover-vapor-cyan py-2 font-heading text-xs font-bold uppercase tracking-wider text-white hover:skew-x-0 transition cursor-pointer font-extrabold"
                 >
                   <span className="inline-block skew-x-12 hover:skew-x-0">
-                    ACCEPT_STREAM &gt;&gt;
+                    ACCEPT TRANSFER &gt;&gt;
                   </span>
                 </button>
                 <button

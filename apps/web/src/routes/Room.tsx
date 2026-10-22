@@ -220,7 +220,7 @@ export function Room() {
             }`}
           >
             <span>
-              {n.type === 'join' ? '▲ NODE_ONLINE: ' : '▼ NODE_OFFLINE: '}
+              {n.type === 'join' ? '▲ NODE ONLINE: ' : '▼ NODE OFFLINE: '}
               <strong className="underline decoration-1">{n.name}</strong>
             </span>
             <button
@@ -251,7 +251,7 @@ export function Room() {
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 bg-neonCyan shadow-[0_0_8px_#00FFFF]" />
             <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-neonCyan">
-              CONNECTED_DECK_NODES ({Object.keys(peers).length + 1})
+              CONNECTED DEVICES ({Object.keys(peers).length + 1})
             </h2>
           </div>
 
