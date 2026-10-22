@@ -97,7 +97,10 @@ describe('Room', () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(screen.getByText(/connecting/i)).toBeInTheDocument();
+    // aria-live status paragraph shows a "connecting / mesh connection" message while pending
+    const statusEl = document.querySelector('[aria-live]');
+    expect(statusEl).toBeTruthy();
+    expect(statusEl!.textContent).toMatch(/connect/i);
     expect(clientMock.joinRoom).toHaveBeenCalledWith('ABC234');
   });
 

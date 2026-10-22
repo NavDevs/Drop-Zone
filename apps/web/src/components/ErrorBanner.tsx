@@ -8,17 +8,24 @@ export function ErrorBanner({ message, onDismiss }: Props) {
   return (
     <div
       role="alert"
-      className="flex items-start justify-between gap-3 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200"
+      className="flex items-start justify-between gap-3 border-2 border-sunsetOrange border-l-4 border-l-sunsetOrange bg-cardBg/95 p-3.5 sm:p-4 shadow-[0_0_20px_rgba(255,153,0,0.25)] backdrop-blur-md"
     >
-      <p>{message}</p>
+      <div className="flex items-start gap-2.5">
+        <span className="font-mono text-sunsetOrange font-bold text-sm leading-tight flex-shrink-0">
+          [!]
+        </span>
+        <p className="font-mono text-xs sm:text-sm text-sunsetOrange uppercase tracking-wide leading-relaxed">
+          {message}
+        </p>
+      </div>
       {onDismiss && (
         <button
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss error"
-          className="shrink-0 rounded p-1 text-red-700 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 dark:text-red-300 dark:hover:bg-red-900"
+          className="-skew-x-6 hover:skew-x-0 border border-sunsetOrange/50 bg-black/60 px-2.5 py-1 font-mono text-xs text-sunsetOrange hover-vapor-orange transition cursor-pointer shrink-0 font-bold"
         >
-          ✕
+          <span className="inline-block skew-x-6 hover:skew-x-0">[X]</span>
         </button>
       )}
     </div>

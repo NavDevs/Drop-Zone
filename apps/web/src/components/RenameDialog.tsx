@@ -32,21 +32,38 @@ export function RenameDialog({ initialName, onSave, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl dark:bg-gray-900"
+        className="w-full max-w-md border-2 border-neonCyan border-t-4 border-t-neonMagenta bg-void/95 p-5 sm:p-6 shadow-[0_0_30px_rgba(0,255,255,0.25)] relative"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id={titleId} className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Rename this device
-        </h2>
-        <label htmlFor="rename-input" className="mt-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Device name
+        <div className="flex items-center justify-between border-b border-retroBorder pb-3">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5 items-center justify-center flex-shrink-0">
+              <span className="absolute inline-flex h-full w-full bg-neonMagenta opacity-80 shadow-[0_0_10px_#FF00FF]" />
+              <span className="relative inline-flex h-1.5 w-1.5 bg-white" />
+            </span>
+            <h2 id={titleId} className="font-heading text-base sm:text-lg font-black tracking-widest text-white uppercase neon-glow-magenta">
+              Rename this device
+            </h2>
+          </div>
+          <div className="flex gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-neonMagenta" />
+            <span className="h-2 w-2 rounded-full bg-neonCyan" />
+          </div>
+        </div>
+
+        <p className="mt-2 text-xs font-mono uppercase tracking-wider text-chrome/60">
+          // CONFIGURE NODE CALLSIGN VISIBLE TO OTHERS IN THE ROOM
+        </p>
+
+        <label htmlFor="rename-input" className="mt-4 block font-heading text-xs uppercase tracking-wider text-chrome/80">
+          &gt; Device name:
         </label>
         <input
           id="rename-input"
@@ -55,23 +72,32 @@ export function RenameDialog({ initialName, onSave, onClose }: Props) {
           maxLength={MAX_LEN}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && submit()}
-          className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+          className="mt-2 w-full border-b-2 border-neonMagenta bg-black/70 px-3.5 py-2.5 font-mono text-base text-neonCyan placeholder:text-neonMagenta/40 focus:border-neonCyan focus:shadow-[0_0_15px_#00FFFF] focus:outline-none"
         />
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-1 flex justify-between font-mono text-[11px] text-chrome/50">
+          <span>alphanumeric &amp; spaces allowed</span>
+          <span>{name.length} / {MAX_LEN}</span>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+            className="-skew-x-6 hover:skew-x-0 border border-retroBorder bg-black/60 px-4 py-2 font-mono text-xs uppercase tracking-wider text-chrome/70 hover-vapor-magenta transition cursor-pointer font-bold"
           >
-            Cancel
+            <span className="inline-block skew-x-6 hover:skew-x-0">
+              Cancel
+            </span>
           </button>
           <button
             type="button"
             onClick={submit}
             disabled={name.trim().length === 0}
-            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="-skew-x-12 hover:skew-x-0 border-2 border-neonCyan vapor-button-cyan hover-vapor-cyan px-6 py-2 font-heading text-xs font-black uppercase tracking-widest text-white disabled:opacity-40 transition cursor-pointer"
           >
-            Save
+            <span className="inline-block skew-x-12 hover:skew-x-0">
+              Save
+            </span>
           </button>
         </div>
       </div>

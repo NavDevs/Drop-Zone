@@ -199,14 +199,18 @@ export function Room() {
 
   if (status === 'error' && error) {
     return (
-      <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-md flex-col items-center justify-center gap-4 p-4">
-        <ErrorBanner message={error.message} />
+      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-lg flex-col items-center justify-center gap-6 p-4 text-center relative z-10">
+        <div className="w-full">
+          <ErrorBanner message={error.message} />
+        </div>
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="rounded-xl bg-primary-600 px-6 py-3 font-semibold text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="-skew-x-12 hover:skew-x-0 border-2 border-neonCyan vapor-button-cyan hover-vapor-cyan px-8 py-3.5 font-heading text-xs sm:text-sm font-black uppercase tracking-widest text-white shadow-neonCyan transition-all duration-200 cursor-pointer"
         >
-          Back home
+          <span className="inline-block skew-x-12 hover:skew-x-0">
+            &lt;&lt; Back home
+          </span>
         </button>
       </main>
     );
@@ -214,26 +218,51 @@ export function Room() {
 
   if (status === 'pending' && urlCode) {
     return (
-      <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-md flex-col items-center justify-center gap-4 p-4 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Waiting for approval…</h1>
-        <p className="text-gray-500 dark:text-gray-400">
-          The host must let you in before you can see other devices.
-        </p>
-        <button
-          type="button"
-          onClick={handleLeave}
-          className="rounded-xl border border-gray-300 px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-        >
-          Cancel
-        </button>
+      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col items-center justify-center gap-5 p-4 text-center relative z-10">
+        <div className="w-full border-2 border-neonCyan border-t-4 border-t-neonMagenta bg-cardBg/95 backdrop-blur-md p-6 shadow-panelGlow">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+              <span className="absolute inline-flex h-full w-full animate-ping bg-neonCyan opacity-80" />
+              <span className="relative inline-flex h-1.5 w-1.5 bg-white" />
+            </span>
+            <span className="font-mono text-xs text-neonCyan font-bold tracking-widest uppercase">
+              // CLEARANCE PENDING
+            </span>
+          </div>
+          <h1 className="font-heading text-xl sm:text-2xl font-black uppercase tracking-wider text-white neon-glow-magenta">
+            Waiting for approval…
+          </h1>
+          <p className="mt-3 font-mono text-xs sm:text-sm text-chrome/70">
+            The host must approve your clearance before you can join this room.
+          </p>
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={handleLeave}
+              className="-skew-x-6 hover:skew-x-0 border border-retroBorder bg-black/60 px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-chrome/80 hover-vapor-magenta transition cursor-pointer font-bold"
+            >
+              <span className="inline-block skew-x-6 hover:skew-x-0">
+                Cancel
+              </span>
+            </button>
+          </div>
+        </div>
       </main>
     );
   }
 
   if (status !== 'joined' || !urlCode || !selfDevice) {
     return (
-      <main className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center p-4">
-        <p className="text-gray-500 dark:text-gray-400" aria-live="polite">Connecting…</p>
+      <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 relative z-10">
+        <div className="border border-retroBorder bg-cardBg/90 px-6 py-4 flex items-center gap-3 backdrop-blur-md shadow-panelGlow">
+          <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+            <span className="absolute inline-flex h-full w-full animate-ping bg-neonCyan opacity-80" />
+            <span className="relative inline-flex h-1.5 w-1.5 bg-white" />
+          </span>
+          <p className="font-mono text-xs sm:text-sm uppercase tracking-widest text-neonCyan" aria-live="polite">
+            Establishing secure mesh connection…
+          </p>
+        </div>
       </main>
     );
   }

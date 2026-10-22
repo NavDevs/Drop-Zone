@@ -14,12 +14,17 @@ export function QrCard({ code, origin }: Props) {
   }, [code, origin]);
 
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-      <div className="rounded-xl bg-white p-2" data-testid="qr-code">
-        <QRCodeSVG value={url} size={128} marginSize={0} />
+    <div className="flex flex-col items-center gap-3 border-2 border-retroBorder border-t-2 border-t-neonMagenta bg-cardBg/95 p-4 sm:p-5 shadow-panelGlow max-w-xs w-full">
+      <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-neonMagenta font-bold">
+        <span>// DEVICE HANDSHAKE QR</span>
       </div>
-      <p className="text-xs text-gray-500 dark:text-gray-400">Scan to join on another device</p>
-      <p className="max-w-[10rem] truncate font-mono text-[11px] text-gray-400 dark:text-gray-500" title={url}>
+      <div className="border-2 border-neonCyan bg-white p-3 shadow-[0_0_15px_rgba(0,255,255,0.4)]" data-testid="qr-code">
+        <QRCodeSVG value={url} size={140} marginSize={0} />
+      </div>
+      <p className="font-mono text-xs uppercase tracking-wider text-chrome/80 text-center">
+        Scan with camera to join instantly
+      </p>
+      <p className="max-w-[14rem] truncate font-mono text-[11px] text-neonCyan/80 bg-black/60 px-3 py-1 border border-retroBorder text-center" title={url}>
         {url}
       </p>
     </div>
