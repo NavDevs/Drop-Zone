@@ -2,6 +2,8 @@
 
 **Peer-to-peer file transfer in the browser.** Files travel directly from one device to another over encrypted WebRTC data channels — no upload, no cloud storage, no accounts.
 
+[**Live Demo (Render)**](https://dropzone-b9au.onrender.com/)
+
 > The signaling server only introduces peers to each other. It never sees file bytes, file names, or file sizes.
 
 ---
